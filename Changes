@@ -1,5 +1,11 @@
 Revision history for Perl extension Devel::SmallProf.
 
+1.13  31 Oct 2003
+	- support for SMALLPROF_CONFIG
+	- add grep-mode output
+	- eliminate DB::sub overhead under perl 5.8.0 or
+	  newer (feature commented out)
+
 1.12  31 Oct 2003
 	- Compensate DB::dub overhead (patch by Chris Sander)
 	- README changed to follow current uses

@@ -1,10 +1,12 @@
 package Devel::SmallProf; # To help the CPAN indexer to identify us
 
-$Devel::SmallProf::VERSION = '1.12';
+$Devel::SmallProf::VERSION = '1.13';
 
 package DB;
 
 require 5.000;
+
+# BEGIN { eval "require 5.008; 1" and $^P=0x122 }
 
 use strict;
 
@@ -21,8 +23,8 @@ sub DB {
   # Now save the _< array for later reference.  If we don't do this here, 
   # evals which do not define subroutines will disappear.
   no strict 'refs';
-  $DB::listings{$filename} = \@{"main::_<$filename"} if 
-    defined(@{"main::_<$filename"});
+  $DB::listings{$filename} = \@{"main::_<$filename"}
+    if defined(@{"main::_<$filename"});
   use strict 'refs';
 
   my($delta);
@@ -43,9 +45,17 @@ use Time::HiRes 'time';
 BEGIN {
   $DB::drop_zeros = 0;
   $DB::profile = 1;
+  $DB::grep_format = 0;
   if (-e '.smallprof') {
     do '.smallprof';
   }
+  $DB::env=$ENV{SMALLPROF_CONFIG};
+  $DB::drop_zeros = 1 if $DB::env=~/z/;
+  $DB::profile = 1 if $DB::env=~/p/;
+  $DB::grep_format = 1 if $DB::env=~/g/;
+
+  # print STDERR "drop_zeros=$DB::drop_zeros grep_format=$DB::grep_format\n";
+
   $DB::prevf = '';
   $DB::prevl = 0;
   my($diff,$cdiff);
@@ -90,10 +100,38 @@ END {
   # Now write out the results.
   open(OUT,">smallprof.out");
   select OUT;
-  my($i,$stat,$time,$ctime,$line,$file,$page);
-  $page = 1;
 
-format OUT_TOP=
+  if ($DB::grep_format) {
+    my @unsorted=();
+    for my $file (keys %DB::profiles) {
+      my @line=@{$DB::profiles{$file}};
+      for my $i (0..@line) {
+	my ($rfile, $ri, $eval)=
+	  ($file=~/^\(eval\s*(\d+)\)\[(.*):(\d+)\]$/)
+	    ? ($2, $3, "(eval $1:$i) ")
+	      : ($file, $i, "");
+	$DB::drop_zeros and !$line[$i] and next;
+	my $line=sprintf('%s:%s:%d:%d:%d: %s%s',
+			 $rfile, $ri, $line[$i],
+			 int($DB::times{$file}[$i]*1000),
+			 int($DB::ctimes{$file}[$i]*1000),
+			 $eval,
+			 $DB::listings{$file}[$i]||'?' );
+	chomp $line;
+	push @unsorted, [ $line, $DB::times{$file}[$i]];
+      }
+    }
+    my @sorted=sort { $b->[1] <=> $a->[1] } @unsorted;
+    print "* file name : line number : line count : time (ms) : ctime (ms) : line source\n";
+    for (@sorted) {
+      print "$_->[0]\n";
+    }
+  }
+  else {
+    my($i,$stat,$time,$ctime,$line,$file,$page);
+    $page = 1;
+
+    format OUT_TOP=
 @||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 '================ SmallProf version '.$Devel::SmallProf::VERSION.' ================'
          @|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Page @<<
@@ -101,43 +139,44 @@ format OUT_TOP=
        =================================================================
     count wall tm  cpu time line 
 .
-format OUT= 
+    format OUT= 
 @######## @.###### @.###### @####:^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 $stat,$time,$ctime,$i,$line
 .
 
-  foreach $file (sort keys %DB::profiles) {
-    $- = 0;
-    if (defined($DB::listings{$file})) {
-      $i = -1;
-      foreach $line (@{$DB::listings{$file}}) {
-        ++$i or next;
-        if (defined($line)) { 
-          chomp($line);
-        } else {
-          $line = '';
-        }
-        $stat = $DB::profiles{$file}->[$i] || 0 or !$DB::drop_zeros or next;
-        $time = defined($DB::times{$file}->[$i]) ?
-                        $DB::times{$file}->[$i] : 0;
-        $ctime = defined($DB::ctimes{$file}->[$i]) ?
-                         $DB::ctimes{$file}->[$i] : 0;
-        write OUT;
+    foreach $file (sort keys %DB::profiles) {
+      $- = 0;
+      if (defined($DB::listings{$file})) {
+	$i = -1;
+	foreach $line (@{$DB::listings{$file}}) {
+	  ++$i or next;
+	  if (defined($line)) {
+	    chomp($line);
+	  } else {
+	    $line = '';
+	  }
+	  $stat = $DB::profiles{$file}->[$i] || 0 or !$DB::drop_zeros or next;
+	  $time = defined($DB::times{$file}->[$i]) ?
+	    $DB::times{$file}->[$i] : 0;
+	  $ctime = defined($DB::ctimes{$file}->[$i]) ?
+	    $DB::ctimes{$file}->[$i] : 0;
+	  write OUT;
+	}
+      } else {
+	$line = "The code for $file is not in the symbol table.";
+	for ($i=1; $i <= $#{$DB::profiles{$file}}; $i++) {
+	  next unless 
+	    ($stat = $DB::profiles{$file}->[$i] || 0 or !$DB::drop_zeros);
+	  $time = defined($DB::times{$file}->[$i]) ?
+	    $DB::times{$file}->[$i] : 0;
+	  $ctime = defined($DB::ctimes{$file}->[$i]) ?
+	    $DB::ctimes{$file}->[$i] : 0;
+	  write OUT;
+	}
       }
-    } else {
-      $line = "The code for $file is not in the symbol table.";
-      for ($i=1; $i <= $#{$DB::profiles{$file}}; $i++) {
-        next unless 
-          ($stat = $DB::profiles{$file}->[$i] || 0 or !$DB::drop_zeros);
-        $time = defined($DB::times{$file}->[$i]) ?
-                        $DB::times{$file}->[$i] : 0;
-        $ctime = defined($DB::ctimes{$file}->[$i]) ?
-                         $DB::ctimes{$file}->[$i] : 0;
-        write OUT;
-      } 
     }
+    close OUT;
   }
-  close OUT;
 }
 
 sub sub {
@@ -228,18 +267,18 @@ platform.
 
 =head1 OPTIONS
 
-SmallProf has 3 variables which can be used during your script to affect what
+SmallProf has 4 variables which can be used during your script to affect what
 gets profiled.
 
 =over 4
 
-=item *
+=item C<$DB::drop_zeros> (z)
 
 If you do not wish to see lines which were never called, set the variable
 C<$DB::drop_zeros = 1>.  With C<drop_zeros> set, SmallProf can be used for 
 basic coverage analysis.
 
-=item *
+=item C<$DB::profile> (p)
 
 To turn off profiling for a time, insert a C<$DB::profile = 0> into your code
 (profiling may be turned back on with C<$DB::profile = 1>).  All of the time
@@ -247,14 +286,31 @@ between profiling being turned off and back on again will be lumped together
 and reported on the C<$DB::profile = 0> line.  This can be used to summarize a
 subroutine call or a chunk of code.
 
-=item *
+=item C<%DB::packages>
 
 To only profile code in a certain package, set the C<%DB::packages> array.  For
 example, to see only the code in packages C<main> and C<Test1>, do this:
 
 	%DB::packages = ( 'main' => 1, 'Test1' => 1 );
 
-=item *
+=item C<$DB::grep_format> (g)
+
+Generates output on a format similar to grep easily parseable from
+tools like Emacs (see below).
+
+grep format output appears as:
+
+  file name : line num : count : time : ctime : source
+
+or
+
+  file name : line num : count : time : ctime : (eval n: line num) source
+
+for code inside evals.
+
+Times appear in miliseconds.
+
+=back
 
 These variables can be put in a file called F<.smallprof> in the current 
 directory.  For example, a F<.smallprof> containing
@@ -266,7 +322,13 @@ will set SmallProf to not report lines which are never touched for any file
 profiled in that directory and will set profiling off initially (presumably to
 be turned on only for a small portion of code).
 
-=back
+Environment variable C<SMALLPROF_CONFIG> can be also used to set those
+flags, i.e:
+
+   SMALLPROF_CONFIG=zg perl -d:SmallProf my_script.plx
+
+activates C<drop_zeros> and C<grep_format> modes.
+
 
 =head1 INSTALLATION
 
@@ -299,6 +361,28 @@ source lines will not be listed.  This is new as of 5.6.0.
 
 Comments, advice and questions are welcome.  If you see
 inefficent stuff in this module and have a better way, please let me know.
+
+=head1 EMACS/XEMACS HACK
+
+=over 4
+
+=item 1
+
+Use the C<DB::grep_format> flag to turn on grep like format, i.e.
+
+  SMALLPROF_CONFIG=g perl -d:SmallProf myscript.pl
+
+=item 2
+
+Tell Emacs/XEmacs to read smallprof.out as grep output:
+
+  M-x grep RET C-a C-k cat smallprof.out RET
+
+=item 3
+
+Point and click to go to the script hot spots!
+
+=back
 
 =head1 AUTHOR
 
