@@ -1,5 +1,13 @@
 Revision history for Perl extension Devel::SmallProf.
 
+0.3  20 Nov 1997
+        - Folded in changes by Geoffry Broadwell ('f) for Win32, creating
+          converter to convert between the two.  Attempted to make that 
+          conversion automatic (see Makefile.PL).
+        - Folded in Paul Ewing's changes to use Time::HiRes instead of 
+          syscall
+        - Removed need for $DB::print_lines
+
 0.2  12 Aug 1997
 	- Better (though still not really good) eval handling.
 

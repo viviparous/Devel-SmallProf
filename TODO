@@ -1,0 +1,74 @@
+Good ideas that might be worth adding with appropriate attention to the
+dangers of feeping creaturism:
+
+From Philippe VERDRET:
+
+- Sub profile. It seems to me interesting to add this code to SmallProf:
+
+        sub sub {
+          $sub{$sub} =~ /.*:(\d+)-/;
+          $profile{$filename}->[$1]++ if defined $1;
+          &$sub;
+        }
+
+  So you can collect additionnal informations and deduce,
+  with filtering, a profile limited to the subroutines.
+- And some other ideas:
+  o build a wrapper for launching the program to profile: so you can
+    define and manipulate easily many profiling options. In the pass
+    I have used this program:
+
+        #!/usr/local/bin/perl -w
+        use File::Basename;
+        BEGIN {
+          $^W = 0;
+          ($basename, $dirname, $suffix) = fileparse($0, '\.pl');
+          push(@INC, "$dirname");
+        }
+
+        use Getopt::Long;
+        $usage = "usage: $basename program to profile";
+        &GetOptions('h',                # Help
+                    'l:s',              # -l logfile, not used
+                   ) or die "$usage\n";
+        $^W = 1;
+        die "$basename: $usage$EOM" if not @ARGV;
+
+        if (not -s $ARGV[0]) {
+          die qq!$basename: no program to profile$EOM!;
+        }
+        $ENV{'PERLDB_OPTS'} = "NonStop=1";
+        $ENV{'PERL5DB'} = qq!BEGIN { require "$dirname/myprof3.pl" }!;
+
+        # Execute
+        print STDERR "$basename - Launching context: $^X -d @ARGV\n";
+        exec $^X, '-d', @ARGV;
+
+    Just a crude version.
+
+  o don't compute the time statistics during the runtime, just collect
+    informations and display the profile later, with a specific program.
+
+From Ed Peshko:
+
+- Add the ability to just profile a certain subroutine and all of its 
+  underlying subroutines rather than the whole thing.
+
+- Add a variable (an array, for example) which lets you debug only in certain
+  packages, something like:
+
+  @DB::package_on = ('main', 'MyModule');
+
+  which would profile only these two packages, ignoring the rest..
+
+- Another idea: I noticed that when SmallProf profiles, in subroutines it
+  doesn't count all the 'sub code' underneath the code itself. Hence, when you
+  say something like:
+
+  a();
+
+  sub a { take_a_long_time(); }
+
+  a comes out as '.005' seconds. How easy (as an option) would it be to have a
+  summation, so that the call to a() reflects the call to take_a_long_time()?
+

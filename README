@@ -1,5 +1,5 @@
 NAME
-    Devel::SmallProf - a small Perl profiler
+    Devel::SmallProf - per-line Perl profiler
 
 SYNOPSIS
             perl5 -d:SmallProf test.pl
@@ -8,22 +8,16 @@ DESCRIPTION
     The Devel::SmallProf is a small profiler which I find useful (or at
     least interesting :-) when used in conjuction with Devel::DProf. It
     collects statistics on the run times of the lines in the various files
-    being run. Those statistics are placed in the file smallprof.out in one
-    of two formats. If `$DB::print_lines' is false (the default), it prints:
-
-            <num> <time> <file>:<line>
+    being run. Those statistics are placed in the file smallprof.out in the
+    following format: <num> <time> <file>:<line>:<text>
 
     where <num> is the number of times that the line was executed, <time> is
-    the amount of time spent executing it and <file> and <line> are the
-    filename and line number, respectively.
+    the amount of time spent executing it and <file>, <line> and <text> are
+    the filename, the line number and the actual text of the executed line
+    (read from the file).
 
-    If, on the other hand, `$DB::print_lines' is true, it print:
-
-            <num> <time> <text>
-
-    where <num> and <time> are as above and <text> is the actual text of the
-    executed line (read from the file). If the executed line, however, is in
-    an eval, no line is printed.
+    Eval lines print <num> and <time> like the others, but also print the
+    package, the eval number and, if possible, the text of the line.
 
     The package uses the debugging hooks in Perl and thus needs the -d
     switch, so to profile test.pl, use the command:
@@ -49,50 +43,45 @@ NOTES
         exercise for the reader. I've tried to keep the timings pretty much
         just to the profiled code, but no guarantees of any kind are made.
 
-    *   SmallProf depends on `syscall()' and `gettimeofday()' (see the "syscall"
-        entry in the perlfunc manpage) to do its timings. If your system
-        lacks them SmallProf won't work.
+    *   SmallProf does attempt to make up for its shortcomings by subtracting a
+        small amount from each timing (null time compensation). This should
+        help somewhat with the accuracy.
 
-    *   There is a variable called `$DB::profile_evals' which sets up some code
-        to try to help the programmer evaluate *which* eval is taking all
-        the time. You can activate this code by putting a
-        `BEGIN{$DB::profile_evals =1}' at the beginning of your script. It
-        is not clear whether this should be considered a feature or a bug.
-        See the section on "BUGS".
+    *   SmallProf depends on the Time::HiRes package to do its timings except
+        for the Win32 version which depends on Win32::API.
+
+    *   If you do not wish to see lines which were never called, set the
+        variable `$DB::drop_zeros = 1'.
+
+INSTALLATION
+    Makefile.PL checks to see if this is a Win32 platform and runs a
+    conversion script on SmallProf prior to installation. I've not been able
+    to test this, but have hopes that it will install on most platforms
+    smoothly. As always, please let me know.
 
 BUGS
-    The handling of evals is poor. The results, even with
-    `$DB::profile_evals' on, are ugly. The code to handle
-    `$DB::profile_evals' is even uglier. The eval profiling uses the
-    `@{"main::_<$filename"}' array to find the code which is currently being
-    executed. I expect that things could be improved somewhat by dealing
-    appropriately with packages, but the reference in the perldebug manpage
-    calls it only `@{"_<$filename"}'. As it is, the eval lines reported are
-    blank some of the time. Even when they show up, it can be hard to tell
-    where they originated.
+    The handling of evals is better than version 0.1, but still poor. For
+    some reason, the `@{'_<filename'}' array for some evals is empty. When
+    this is true, there isn't a lot that can be done.
 
-    Also, there has got to be a better way to switch that stuff on and off
-    than "bootstrapping" `&DB::DB'. If there is a slick, computationally
-    cheap way of dealing with evals, I'm intending to set it to always debug
-    evals and try to forget that I ever wrote kludge that is there now, but
-    it's there now because I'm trying to keep the expense of this module as
-    low as possible.
+    The conversion to the Win32 version is done during the call to
+    Makefile.PL. This seems fairly inappropriate, but I'm not sure where
+    better to do it.
 
-    Comments, advice and insulting remarks about kludges are welcome. If you
-    see inefficent stuff in this module and have a better way, please let me
-    know.
+    Comments, advice and questions are welcome. If you see inefficent stuff
+    in this module and have a better way, please let me know.
 
 AUTHOR
-    Ted Ashton <ashted@southern.edu>
-
-    SmallProf was developed from code orignally posted to usenet by Philippe
-    Verdret. I've attempted to contact him but have had no success.
-
-    Copyright (c) 1997 Ted Ashton
-
-    This module is free software and can be redistributed and/or modified
-    under the same terms as Perl itself.
-
+ 
+Ted Ashton <ashted@southern.edu>
+ 
+SmallProf was developed from code orignally posted to usenet by Philippe
+Verdret.
+ 
+Copyright (c) 1997 Ted Ashton
+ 
+This module is free software and can be redistributed and/or modified under the
+same terms as Perl itself.
 SEE ALSO
     the Devel::DProf manpage, the gettimeofday() manpage
 

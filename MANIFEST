@@ -3,4 +3,6 @@ MANIFEST
 Makefile.PL
 README
 SmallProf.pm
+TODO
 test.pl
+converter
