@@ -1,6 +1,6 @@
 package Devel::SmallProf; # To help the CPAN indexer to identify us
 
-$Devel::SmallProf::VERSION = '1.13';
+$Devel::SmallProf::VERSION = '1.14';
 
 package DB;
 
@@ -10,7 +10,7 @@ require 5.000;
 
 use strict;
 
-sub time ();
+sub Time::HiRes::time ();
 
 sub DB {
   my($pkg,$filename,$line) = caller;
@@ -18,7 +18,7 @@ sub DB {
   %DB::packages && !$DB::packages{$pkg} && return;
   my($u,$s,$cu,$cs) = times;
   $DB::cdone = $u+$s+$cu+$cs;
-  $DB::done = time;
+  $DB::done = Time::HiRes::time;
 
   # Now save the _< array for later reference.  If we don't do this here, 
   # evals which do not define subroutines will disappear.
@@ -37,10 +37,10 @@ sub DB {
 
   ($u,$s,$cu,$cs) = times;
   $DB::cstart = $u+$s+$cu+$cs;
-  $DB::start = time;
+  $DB::start = Time::HiRes::time;
 }
 
-use Time::HiRes 'time';
+use Time::HiRes; # 'time';
 
 BEGIN {
   $DB::drop_zeros = 0;
@@ -49,7 +49,7 @@ BEGIN {
   if (-e '.smallprof') {
     do '.smallprof';
   }
-  $DB::env=$ENV{SMALLPROF_CONFIG};
+  $DB::env=$ENV{SMALLPROF_CONFIG}||'';
   $DB::drop_zeros = 1 if $DB::env=~/z/;
   $DB::profile = 1 if $DB::env=~/p/;
   $DB::grep_format = 1 if $DB::env=~/g/;
@@ -71,11 +71,11 @@ BEGIN {
   for (1..100) {
     my($u,$s,$cu,$cs) = times;
     $DB::cstart = $u+$s+$cu+$cs;
-    $DB::start = time;
+    $DB::start = Time::HiRes::time;
     &$testDB;
     ($u,$s,$cu,$cs) = times;
     $DB::cdone = $u+$s+$cu+$cs;
-    $DB::done = time;
+    $DB::done = Time::HiRes::time;
     $diff = $DB::done - $DB::start;
     $DB::nulltime += $diff;
   }
@@ -83,14 +83,14 @@ BEGIN {
 
   my($u,$s,$cu,$cs) = times;
   $DB::cstart = $u+$s+$cu+$cs;
-  $DB::start = time;
+  $DB::start = Time::HiRes::time;
 }
 
 END {
   # Get time on last line executed.
   my($u,$s,$cu,$cs) = times;
   $DB::cdone = $u+$s+$cu+$cs;
-  $DB::done = time;
+  $DB::done = Time::HiRes::time;
   my($delta);
   $delta = $DB::done - $DB::start;
   $delta = ($delta > $DB::nulltime) ? $delta - $DB::nulltime : 0;
@@ -189,7 +189,7 @@ sub sub {
   }
   my($u,$s,$cu,$cs) = times;
   $DB::cstart = $u+$s+$cu+$cs;
-  $DB::start = time;
+  $DB::start = Time::HiRes::time;
   goto &$DB::sub;
 }
 
