@@ -1,5 +1,8 @@
 Revision history for Perl extension Devel::SmallProf.
 
+0.8  26 Jul 2000
+        - Made SmallProf -w-clean (at least so far as I can tell :-)
+
 0.7  28 Jul 1999
         - Some cleanup on sub profiling and locales
         - fixed up and added some tests

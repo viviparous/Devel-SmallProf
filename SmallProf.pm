@@ -1,6 +1,6 @@
 package Devel::SmallProf; # To help the CPAN indexer to identify us
 
-$Devel::SmallProf::VERSION = '0.7'; 
+$Devel::SmallProf::VERSION = '0.8'; 
 
 package DB;
 
@@ -92,21 +92,16 @@ END {
   $page = 1;
 
 format OUT_TOP=
-===============================================================================
+@||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+'================ SmallProf version '.$Devel::SmallProf::VERSION.' ================'
          @|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Page @<<
 "Profile of $file",$page++
-===============================================================================
+       =================================================================
     count wall tm  cpu time line 
 .
 format OUT= 
 @######## @.###### @.###### @####:^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 $stat,$time,$ctime,$i,$line
-.
-format OUT2= 
-@######## @.###### @.###### @####:^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-$stat,$time,$ctime,$i,$line
-~~                                ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-$line
 .
 
   foreach $file (sort keys %DB::profiles) {
@@ -115,7 +110,11 @@ $line
       $i = -1;
       foreach $line (@{$DB::listings{$file}}) {
         ++$i or next;
-        chomp($line);
+        if (defined($line)) { 
+          chomp($line);
+        } else {
+          $line = '';
+        }
         $stat = $DB::profiles{$file}->[$i] || 0 or !$DB::drop_zeros or next;
         $time = defined($DB::times{$file}->[$i]) ?
                         $DB::times{$file}->[$i] : 0;
