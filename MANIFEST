@@ -4,5 +4,6 @@ Makefile.PL
 README
 SmallProf.pm
 TODO
-test.pl
-converter
+t/load.t
+t/use_part1.t
+t/use_part2.t

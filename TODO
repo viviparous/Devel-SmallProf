@@ -54,13 +54,6 @@ From Ed Peshko:
 - Add the ability to just profile a certain subroutine and all of its 
   underlying subroutines rather than the whole thing.
 
-- Add a variable (an array, for example) which lets you debug only in certain
-  packages, something like:
-
-  @DB::package_on = ('main', 'MyModule');
-
-  which would profile only these two packages, ignoring the rest..
-
 - Another idea: I noticed that when SmallProf profiles, in subroutines it
   doesn't count all the 'sub code' underneath the code itself. Hence, when you
   say something like:

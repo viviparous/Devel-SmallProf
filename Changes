@@ -1,5 +1,15 @@
 Revision history for Perl extension Devel::SmallProf.
 
+0.4  12 Jan 1998
+        - Removed the use vars--fully specifying all non-my variables.
+        - Added $DB::profile flag to turn profiling on and off.
+        - Added %DB::packages support to profile only in certain packages.
+	- Read source lines from @main::_<file instead of from disk files.
+	  This saves having to save eval lines during the run as well.  Still
+          missing some eval code, though.
+        - Better nulltime compensation.
+        - Use formats instead of printf for output.
+        
 0.3  20 Nov 1997
         - Folded in changes by Geoffry Broadwell ('f) for Win32, creating
           converter to convert between the two.  Attempted to make that 

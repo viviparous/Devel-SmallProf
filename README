@@ -5,19 +5,19 @@ SYNOPSIS
             perl5 -d:SmallProf test.pl
 
 DESCRIPTION
-    The Devel::SmallProf is a small profiler which I find useful (or at
-    least interesting :-) when used in conjuction with Devel::DProf. It
-    collects statistics on the run times of the lines in the various files
-    being run. Those statistics are placed in the file smallprof.out in the
-    following format: <num> <time> <file>:<line>:<text>
+    The Devel::SmallProf profiler is focused on the time taken for a program
+    run on a line-by-line basis. It is intended to be as "small" in terms of
+    impact on the speed and memory usage of the profiled program as possible
+    and also in terms of being simple to use. It collects statistics on the
+    run times of the lines in the various files being run. Those statistics
+    are placed in the file smallprof.out in the following format:
+
+            <num> <time> <file>:<line>:<text>
 
     where <num> is the number of times that the line was executed, <time> is
     the amount of time spent executing it and <file>, <line> and <text> are
     the filename, the line number and the actual text of the executed line
     (read from the file).
-
-    Eval lines print <num> and <time> like the others, but also print the
-    package, the eval number and, if possible, the text of the line.
 
     The package uses the debugging hooks in Perl and thus needs the -d
     switch, so to profile test.pl, use the command:
@@ -50,19 +50,38 @@ NOTES
     *   SmallProf depends on the Time::HiRes package to do its timings except
         for the Win32 version which depends on Win32::API.
 
+VARIABLES
+    SmallProf has 3 variables which can be used during your script to affect
+    what gets profiled.
+
     *   If you do not wish to see lines which were never called, set the
         variable `$DB::drop_zeros = 1'.
 
+    *   To turn off profiling for a time, insert a `$DB::profile = 0' into your
+        code (profiling may be turned back on with `$DB::profile = 1'). All
+        of the time between profiling being turned off and back on again
+        will be lumped together and reported on the `$DB::profile = 0' line.
+        This can be used to summarize a subroutine call or a chunk of code.
+
+    *   To only profile code in a certain package, set the `%DB::packages'
+        array. For example, to see only the code in packages `main' and
+        `Test1', do this:
+
+                %DB::packages = ( 'main' => 1, 'Test1' => 1 );
+
 INSTALLATION
     Makefile.PL checks to see if this is a Win32 platform and runs a
-    conversion script on SmallProf prior to installation. I've not been able
-    to test this, but have hopes that it will install on most platforms
+    conversion subroutine on SmallProf prior to installation. I've not been
+    able to test this, but have hopes that it will install on most platforms
     smoothly. As always, please let me know.
 
 BUGS
-    The handling of evals is better than version 0.1, but still poor. For
-    some reason, the `@{'_<filename'}' array for some evals is empty. When
-    this is true, there isn't a lot that can be done.
+    The handling of evals is bad news. This is due to Perl's handling of
+    evals under the -d flag. For certain evals, caller() returns '(eval n)'
+    for the filename and for others it doesn't. For some of those which it
+    does, the array `@{'_<filename'}' contains the code of the eval. For
+    others it doesn't. Sometime, when I've an extra tuit or two, I'll figure
+    out why and how I can compensate for this.
 
     The conversion to the Win32 version is done during the call to
     Makefile.PL. This seems fairly inappropriate, but I'm not sure where
@@ -75,13 +94,15 @@ AUTHOR
  
 Ted Ashton <ashted@southern.edu>
  
-SmallProf was developed from code orignally posted to usenet by Philippe
-Verdret.
+SmallProf was developed from code originally posted to usenet by Philippe
+Verdret <philippe.verdret@sonovision-itep.fr>.  Special thanks to
+Geoffrey Broadwell <habusan2@sprynet.com> for the Win32 code.
  
 Copyright (c) 1997 Ted Ashton
  
 This module is free software and can be redistributed and/or modified under the
 same terms as Perl itself.
 SEE ALSO
-    the Devel::DProf manpage, the gettimeofday() manpage
+    the Devel::DProf manpage, the Time::HiRes manpage, the Win32::API
+    manpage
 
