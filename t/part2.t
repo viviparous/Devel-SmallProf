@@ -18,7 +18,9 @@ print +(!/\$x\+\+;/)                       ? "ok  4\n" : "not ok  4\n";
 print +(m'^\s*10\s.*\$z\+\+; \$z--;\s*$'m) ? "ok  5\n" : "not ok  5\n";
 if (/^\s*1\s+(\d+.\d+)\s.*sleep/m) {
   print "ok  6\n";
-  print +(($1 + 0.2)>1.0)                  ? "ok  7\n" : "not ok  7\n";
+  my $a=$1;
+  $a =~ s/,/./;
+  print +(($a + 0.2)>1.0)                  ? "ok  7\n" : "not ok  7\n";
 } else {
   print "not ok 6\nnot ok 7\n";
 }
@@ -28,5 +30,6 @@ print +(!/\$a\+\+;/)                       ? "ok 10\n" : "not ok 10\n";
 
 # Now setup for parts 3 and 4
 open(DOT,'>.smallprof');
+print DOT '$DB::drop_zeros=1;';
 print DOT '$DB::profile=0;';
 close DOT;

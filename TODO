@@ -1,6 +1,9 @@
 Good ideas that might be worth adding with appropriate attention to the
 dangers of feeping creaturism:
 
+- Add a good example of a profile with comments about what things mean.  
+  Factorial might be a good choice.
+
 - Use the rusage call (in UNIX, at least) and gettimeofday to remove dependance
   on Time::HiRes and to give processor time reports.
 

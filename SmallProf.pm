@@ -1,6 +1,6 @@
 package Devel::SmallProf; # To help the CPAN indexer to identify us
 
-$Devel::SmallProf::VERSION = '0.6';
+$Devel::SmallProf::VERSION = '0.7'; 
 
 package DB;
 
@@ -96,7 +96,7 @@ format OUT_TOP=
          @|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Page @<<
 "Profile of $file",$page++
 ===============================================================================
-count  wall tm  cpu time line 
+    count wall tm  cpu time line 
 .
 format OUT= 
 @######## @.###### @.###### @####:^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -142,12 +142,12 @@ $line
 sub sub {
   no strict 'refs';
   goto &$DB::sub unless $DB::profile;
-  my($m,$s) = split /[:-]/,$DB::sub{$DB::sub};  # Don't use regex so as not to
-                                                # clobber $1 and $2.
-  $DB::profiles{$m}->[$s]++ if defined $s;
-  $DB::listings{$m} = \@{"main::_<$m"} if defined(@{"main::_<$m"});
-  &$DB::sub;
-  use strict 'refs';
+  if (defined($DB::sub{$DB::sub})) {
+    my($m,$s) = ($DB::sub{$DB::sub} =~ /.+(?=:)|[^:-]+/g);
+    $DB::profiles{$m}->[$s]++;
+    $DB::listings{$m} = \@{"main::_<$m"} if defined(@{"main::_<$m"});
+  }
+  goto &$DB::sub;
 }
 
 1;
@@ -170,13 +170,13 @@ the speed and memory usage of the profiled program as possible and also in
 terms of being simple to use.  Those statistics are placed in the file
 F<smallprof.out> in the following format:
 
-        <num> <time> <ctime> <file>:<line>:<text>
+        <num> <time> <ctime> <line>:<text>
 
 where <num> is the number of times that the line was executed, <time> is the
 amount of "wall time" (time according the the clock on the wall vs. cpu time)
-spent executing it, <ctime> is the amount of cpu time expended on it and
-<file>, <line> and <text> are the filename, the line number and the actual text
-of the executed line (read from the file).
+spent executing it, <ctime> is the amount of cpu time expended on it and <line>
+and <text> are the line number and the actual text of the executed line (read
+from the file).
 
 The package uses the debugging hooks in Perl and thus needs the B<-d> switch,
 so to profile F<test.pl>, use the command:
@@ -297,7 +297,8 @@ Ted Ashton E<lt>ashted@southern.eduE<gt>
 SmallProf was developed from code originally posted to usenet by Philippe
 Verdret E<lt>philippe.verdret@sonovision-itep.frE<gt>.  Special thanks to
 Geoffrey Broadwell E<lt>habusan2@sprynet.comE<gt> for his assistance on the
-Win32 platform
+Win32 platform and to Philippe for his patient assistance in testing and 
+debugging.
  
 Copyright (c) 1997 Ted Ashton
  

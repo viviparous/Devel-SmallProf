@@ -6,5 +6,5 @@ SmallProf.pm
 TODO
 t/part1.t
 t/part2.t
-t/part3.t
-t/part4.t
+t/part:-3.t
+t/part:4.t

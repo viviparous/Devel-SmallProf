@@ -11,13 +11,13 @@ DESCRIPTION
     and also in terms of being simple to use. Those statistics are placed in
     the file smallprof.out in the following format:
 
-            <num> <time> <ctime> <file>:<line>:<text>
+            <num> <time> <ctime> <line>:<text>
 
     where <num> is the number of times that the line was executed, <time> is
     the amount of "wall time" (time according the the clock on the wall vs.
     cpu time) spent executing it, <ctime> is the amount of cpu time expended
-    on it and <file>, <line> and <text> are the filename, the line number
-    and the actual text of the executed line (read from the file).
+    on it and <line> and <text> are the line number and the actual text of
+    the executed line (read from the file).
 
     The package uses the debugging hooks in Perl and thus needs the -d
     switch, so to profile test.pl, use the command:
@@ -115,7 +115,8 @@ Ted Ashton <ashted@southern.edu>
 SmallProf was developed from code originally posted to usenet by Philippe
 Verdret <philippe.verdret@sonovision-itep.fr>.  Special thanks to
 Geoffrey Broadwell <habusan2@sprynet.com> for his assistance on the
-Win32 platform
+Win32 platform and to Philippe for his patient assistance in testing and 
+debugging.
  
 Copyright (c) 1997 Ted Ashton
  

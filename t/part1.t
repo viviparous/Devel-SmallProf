@@ -42,4 +42,16 @@ A::test();
 B::test();
 C::test();
 
-print "1..1\nok 1\n";  # do the actual checks in _part2
+print "1..1\n";  # check above stuff in part2
+
+sub dollar_test ($$$) 
+{
+  my ($one, $two, $three) = @_;
+  print(($one   eq 'a' && 
+         $two   eq 'b' && 
+         $three eq 'c') ? 'ok 1' : 'not ok 1',"\n");
+}
+
+my $line = 'abc';
+$line =~ /(a)(b)(c)/;
+dollar_test($1, $2, $3);

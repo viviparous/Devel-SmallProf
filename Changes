@@ -1,5 +1,9 @@
 Revision history for Perl extension Devel::SmallProf.
 
+0.7  28 Jul 1999
+        - Some cleanup on sub profiling and locales
+        - fixed up and added some tests
+
 0.6  11 Jul 1999
         - Cleanup on part4.t and part1.t (Thanks!)
         - Removed special Win32 support as Time::HiRes now works on Win32 
