@@ -1,13 +1,16 @@
+package Devel::SmallProf; # To help the CPAN indexer to identify us
+
 package DB;
 
 require 5.000;
+
 use strict;
 # Specify global vars
 use vars qw($print_lines $TIMEVAL_T $start $done $filename $line %profile
-  %files $prevf $prevl %times $file @start @done $i $stat $time $profile_evals
-  %eval_lines);
+  %files $prevf $prevl %times $file @start @done $i $stat $time 
+  %eval_lines $pkg);
 
-$Devel::SmallProf::VERSION = '0.1';
+$Devel::SmallProf::VERSION = '0.2';
 
 $print_lines = 0;  # Print contents of executed lines
 
@@ -19,27 +22,23 @@ BEGIN{
 }
 
 sub DB {
-  eval q(
-  sub DB {
-    syscall(&SYS_gettimeofday, $done, 0);
-    ($filename, $line) = (caller(0))[1,2];
-  ).($profile_evals ? q(
-    no strict "refs";
-    if ($filename =~ /\(eval /) {
-      $eval_lines{$filename}->[$line] = ${"main::_<$filename"}[$line];
-    }
-    use strict "refs";
-  ) : '').q(
-    $profile{$filename}->[$line]++;
-    @start = unpack($TIMEVAL_T,$start);
-    @done = unpack($TIMEVAL_T,$done);
-    $times{$prevf}->[$prevl] += ($done[0] + ($done[1]/1_000_000)) - 
-                                ($start[0]+($start[1]/1_000_000));
-    $files{$filename}++;
-    ($prevf, $prevl) = ($filename, $line);
-    syscall(&SYS_gettimeofday, $start, 0);
+  syscall(&SYS_gettimeofday, $done, 0);
+  ($pkg,$filename,$line) = (caller(0))[0..2];
+  no strict "refs";
+  if ($filename =~ /\(eval /) {
+    $filename =~ s/(\(eval.*?\))/$pkg:$1/;
+    $file = $1;
+    $eval_lines{$filename}->[$line] = ${'main::_<'.$file}[$line]; 
   }
-  );
+  use strict "refs";
+  $profile{$filename}->[$line]++;
+  @start = unpack($TIMEVAL_T,$start);
+  @done = unpack($TIMEVAL_T,$done);
+  $times{$prevf}->[$prevl] += ($done[0] + ($done[1]/1_000_000)) - 
+                              ($start[0]+($start[1]/1_000_000));
+  $files{$filename}++;
+  ($prevf, $prevl) = ($filename, $line);
+  syscall(&SYS_gettimeofday, $start, 0);
 }
 
 END {
@@ -55,20 +54,18 @@ END {
   # Now write out the results.
   #
   open(OUT,">smallprof.out");
-  if ($profile_evals) { # print out evals first
-    foreach $file (sort keys %eval_lines) {
-      print OUT ("\n", "=" x 50, "\n",
-                 " Profile of $file\n",
-                 "=" x 50, "\n\n");
-      for $i (1..$#{$eval_lines{$file}}) {
-        $stat = $profile{$file}->[++$i];
-        $time = $times{$file}->[$i];
-        chomp($_ = $eval_lines{$file}->[$i]);
-        printf OUT ("%5d %.8f \t%s\n", $stat, $time, $_);
-      }
+  foreach $file (sort keys %eval_lines) { # print out evals first
+    print OUT ("\n", "=" x 50, "\n",
+               " Profile of $file\n",
+               "=" x 50, "\n\n");
+    for $i (1..$#{$profile{$file}}) {
+      $stat = $profile{$file}->[$i];
+      $time = $times{$file}->[$i];
+      chomp($_ = $eval_lines{$file}->[$i]);
+      printf OUT ("%5d %.8f \t%4d:%s\n", $stat, $time, $i, $file.':'.$_);
     }
   }
-  foreach $file (keys %files) {
+  foreach $file (grep {!/\(eval/} sort keys %files) {
     print OUT ("\n", "=" x 50, "\n",
                " Profile of $file\n",
                "=" x 50, "\n\n");
@@ -85,7 +82,7 @@ END {
         print OUT ("=" x 50, "\n");
       }
     } else {
-      unless ($profile_evals and $file =~/\(eval /) {
+      unless ($file =~/\(eval /) {
         for ($i = 1; $i <= $#{$profile{$file}}; $i++) {
           $stat = $profile{$file}->[$i];
           $time = $times{$file}->[$i];
@@ -103,7 +100,7 @@ __END__
 
 =head1 NAME
 
-Devel::SmallProf - a small Perl profiler
+Devel::SmallProf - per-line Perl profiler
 
 =head1 SYNOPSIS
 
@@ -128,8 +125,11 @@ If, on the other hand, C<$DB::print_lines> is true, it print:
 	<num> <time> <text>
 
 where <num> and <time> are as above and <text> is the actual text of the
-executed line (read from the file).  If the executed line, however, is in an
-eval, no line is printed.
+executed line (read from the file).  
+
+Eval lines print <num> and <time> like
+the others, but also print the package, the eval number and, if possible, the
+text of the line.  This is not affected by C<$DB::print_lines>.
 
 The package uses the debugging hooks in Perl and thus needs the B<-d> switch,
 so to profile F<test.pl>, use the command:
@@ -166,35 +166,15 @@ SmallProf depends on C<syscall()> and C<gettimeofday()>
 (see L<perlfunc/syscall>) to do its timings.  If your system lacks them 
 SmallProf won't work.
 
-=item *
-
-There is a variable called C<$DB::profile_evals> which sets up some code to try
-to help the programmer evaluate *which* eval is taking all the time.  
-You can activate this code by putting a C<BEGIN{$DB::profile_evals =1}> at the 
-beginning of your script.  It is not
-clear whether this should be considered a feature or a bug.  See L<"BUGS">.
-
 =back
 
 =head1 BUGS
 
-The handling of evals is poor.  The results, even with C<$DB::profile_evals> on,
-are ugly.  The code to handle C<$DB::profile_evals> is even uglier.  
-The eval profiling uses the C<@{"main::_<$filename"}> array to find the code 
-which 
-is currently being executed.  I expect that things could be improved somewhat
-by dealing appropriately with packages, but the reference in L<perldebug> calls
-it only C<@{"_<$filename"}>.  As it is, the eval lines reported are blank some
-of the time.  Even when they show up, it can be hard to tell where they 
-originated.
+The handling of evals is better than version 0.1, but still poor.  For some 
+reason, the C<@{'_E<lt>filename'}> array for some evals is empty.  When this
+is true, there isn't a lot that can be done.
 
-Also, there has got to be a better way to switch that stuff on and off than
-"bootstrapping" C<&DB::DB>.  If there is a slick, computationally cheap way
-of dealing with evals, I'm intending to set it to always debug evals and try to
-forget that I ever wrote kludge that is there now, but it's there now because
-I'm trying to keep the expense of this module as low as possible.
-
-Comments, advice and insulting remarks about kludges are welcome.  If you see
+Comments, advice and questions are welcome.  If you see
 inefficent stuff in this module and have a better way, please let me know.
 
 =head1 AUTHOR
