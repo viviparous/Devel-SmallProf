@@ -3,7 +3,7 @@
 print "1..2\n";
 open(SPO,'smallprof.out');  
 @lines = <SPO>;
-if (grep /^\s+1 .+sub check_for_invocation/,@lines) {
+if (grep /^\s+1 .+check_for_invocation/,@lines) {
   print "ok 1\n";
 } else {
   print "not ok 1\n";

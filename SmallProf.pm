@@ -1,139 +1,132 @@
 package Devel::SmallProf; # To help the CPAN indexer to identify us
-
-$Devel::SmallProf::VERSION = '1.15';
+our $VERSION = '2.00_02';
 
 package DB;
 
-require 5.006;
+require 5.008;
 
-# BEGIN { eval "require 5.008; 1" and $^P=0x122 }
+# do not profile subs
+BEGIN { $^P=0x122 }
 
 use strict;
 
 sub Time::HiRes::time ();
 
+our ($profile, $drop_zeros, $grep_format, %packages);
+
+my ($cdone, $done, $cstart, $start, $prevf, $prevl, $nulltime,
+    %listings, %profiles, %times, %ctimes);
+
+sub sub; # even if it is not used it has to be declared!
+
 sub DB {
   my($pkg,$filename,$line) = caller;
-  $DB::profile || return;
-  %DB::packages && !$DB::packages{$pkg} && return;
-  my($u,$s,$cu,$cs) = times;
-  $DB::cdone = $u+$s+$cu+$cs;
-  $DB::done = Time::HiRes::time;
+  $profile || return;
+  %packages && !$packages{$pkg} && return;
+  my ($u,$s,$cu,$cs) = times;
+  $cdone = $u+$s+$cu+$cs;
+  $done = Time::HiRes::time;
 
   # Now save the _< array for later reference.  If we don't do this here, 
   # evals which do not define subroutines will disappear.
   no strict 'refs';
-  $DB::listings{$filename} = \@{"main::_<$filename"}
+  $listings{$filename} = \@{"main::_<$filename"}
     if defined(@{"main::_<$filename"});
   use strict 'refs';
 
   my($delta);
-  $delta = $DB::done - $DB::start;
-  $delta = ($delta > $DB::nulltime) ? $delta - $DB::nulltime : 0;
-  $DB::profiles{$filename}->[$line]++;
-  $DB::times{$DB::prevf}->[$DB::prevl] += $delta;
-  $DB::ctimes{$DB::prevf}->[$DB::prevl] += ($DB::cdone - $DB::cstart);
-  ($DB::prevf, $DB::prevl) = ($filename, $line);
+  $delta = $done - $start;
+  $delta = ($delta > $nulltime) ? $delta - $nulltime : 0;
+  $profiles{$filename}->[$line]++;
+  $times{$prevf}->[$prevl] += $delta;
+  $ctimes{$prevf}->[$prevl] += ($cdone - $cstart);
+  ($prevf, $prevl) = ($filename, $line);
 
   ($u,$s,$cu,$cs) = times;
-  $DB::cstart = $u+$s+$cu+$cs;
-  $DB::start = Time::HiRes::time;
+  $cstart = $u+$s+$cu+$cs;
+  $start = Time::HiRes::time;
 }
 
-
-sub sub {
-  no strict 'refs';
-  return &{$DB::sub}(@_) unless $DB::profile;
-  if (defined($DB::sub{$DB::sub})) {
-    my($m,$s) = ($DB::sub{$DB::sub} =~ /.+(?=:)|[^:-]+/g);
-    $DB::profiles{$m}->[$s]++;
-    $DB::listings{$m} = \@{"main::_<$m"} if defined(@{"main::_<$m"});
-  }
-  my($u,$s,$cu,$cs) = times;
-  $DB::cstart = $u+$s+$cu+$cs;
-  $DB::start = Time::HiRes::time;
-  &{$DB::sub}(@_);
-}
 
 use Time::HiRes; # 'time';
 
 BEGIN {
-  $DB::drop_zeros = 0;
-  $DB::profile = 1;
-  $DB::grep_format = 0;
+  $drop_zeros = 0;
+  $profile = 1;
+  $grep_format = 0;
   if (-e '.smallprof') {
     do '.smallprof';
   }
-  $DB::env=$ENV{SMALLPROF_CONFIG}||'';
-  $DB::drop_zeros = 1 if $DB::env=~/z/;
-  $DB::profile = 1 if $DB::env=~/p/;
-  $DB::grep_format = 1 if $DB::env=~/g/;
+  my $env=$ENV{SMALLPROF_CONFIG}||'';
+  $drop_zeros = 1 if $env=~/z/;
+  $profile = 1 if $env=~/p/;
+  $grep_format = 1 if $env=~/g/;
 
   # print STDERR "drop_zeros=$DB::drop_zeros grep_format=$DB::grep_format\n";
 
-  $DB::prevf = '';
-  $DB::prevl = 0;
+  $prevf = '';
+  $prevl = 0;
   my($diff,$cdiff);
 
   my($testDB) = sub {
     my($pkg,$filename,$line) = caller;
-    $DB::profile || return;
-    %DB::packages && !$DB::packages{$pkg} && return;
+    $profile || return;
+    %packages && !$packages{$pkg} && return;
   };
 
   # "Null time" compensation code
-  $DB::nulltime = 0;
+  $nulltime = 0;
   for (1..100) {
     my($u,$s,$cu,$cs) = times;
-    $DB::cstart = $u+$s+$cu+$cs;
-    $DB::start = Time::HiRes::time;
+    $cstart = $u+$s+$cu+$cs;
+    $start = Time::HiRes::time;
     &$testDB;
     ($u,$s,$cu,$cs) = times;
-    $DB::cdone = $u+$s+$cu+$cs;
-    $DB::done = Time::HiRes::time;
-    $diff = $DB::done - $DB::start;
-    $DB::nulltime += $diff;
+    $cdone = $u+$s+$cu+$cs;
+    $done = Time::HiRes::time;
+    $diff = $done - $start;
+    $nulltime += $diff;
   }
-  $DB::nulltime /= 100;
+  $nulltime /= 100;
 
   my($u,$s,$cu,$cs) = times;
-  $DB::cstart = $u+$s+$cu+$cs;
-  $DB::start = Time::HiRes::time;
+  $cstart = $u+$s+$cu+$cs;
+  $start = Time::HiRes::time;
 }
 
 END {
   # Get time on last line executed.
   my($u,$s,$cu,$cs) = times;
-  $DB::cdone = $u+$s+$cu+$cs;
-  $DB::done = Time::HiRes::time;
+  $cdone = $u+$s+$cu+$cs;
+  $done = Time::HiRes::time;
   my($delta);
-  $delta = $DB::done - $DB::start;
-  $delta = ($delta > $DB::nulltime) ? $delta - $DB::nulltime : 0;
-  $DB::times{$DB::prevf}->[$DB::prevl] += $delta;
-  $DB::ctimes{$DB::prevf}->[$DB::prevl] += ($DB::cdone - $DB::cstart);
+  $delta = $done - $start;
+  $delta = ($delta > $nulltime) ? $delta - $nulltime : 0;
+  $times{$prevf}->[$prevl] += $delta;
+  $ctimes{$prevf}->[$prevl] += ($cdone - $cstart);
 
   # Now write out the results.
   open(OUT,">smallprof.out");
   select OUT;
 
-  if ($DB::grep_format) {
+  if ($grep_format) {
     my @unsorted=();
-    for my $file (keys %DB::profiles) {
-      my @line=@{$DB::profiles{$file}};
+    for my $file (keys %profiles) {
+      my @line=@{$profiles{$file}};
       for my $i (0..@line) {
 	my ($rfile, $ri, $eval)=
 	  ($file=~/^\(eval\s*(\d+)\)\[(.*):(\d+)\]$/)
 	    ? ($2, $3, "(eval $1:$i) ")
 	      : ($file, $i, "");
-	$DB::drop_zeros and !$line[$i] and next;
+	$drop_zeros and !$line[$i] and next;
 	my $line=sprintf('%s:%s:%d:%d:%d: %s%s',
 			 $rfile, $ri, $line[$i],
-			 int($DB::times{$file}[$i]*1000),
-			 int($DB::ctimes{$file}[$i]*1000),
+			 int($times{$file}[$i]*1000),
+			 int($ctimes{$file}[$i]*1000),
 			 $eval,
-			 $DB::listings{$file}[$i]||'?' );
+			 $listings{$file}[$i]||'?' );
 	chomp $line;
-	push @unsorted, [ $line, $DB::times{$file}[$i]];
+	push @unsorted, [ $line, $times{$file}[$i]];
       }
     }
     my @sorted=sort { $b->[1] <=> $a->[1] } @unsorted;
@@ -159,33 +152,33 @@ END {
 $stat,$time,$ctime,$i,$line
 .
 
-    foreach $file (sort keys %DB::profiles) {
+    foreach $file (sort keys %profiles) {
       $- = 0;
-      if (defined($DB::listings{$file})) {
+      if (defined($listings{$file})) {
 	$i = -1;
-	foreach $line (@{$DB::listings{$file}}) {
+	foreach $line (@{$listings{$file}}) {
 	  ++$i or next;
 	  if (defined($line)) {
 	    chomp($line);
 	  } else {
 	    $line = '';
 	  }
-	  $stat = $DB::profiles{$file}->[$i] || 0 or !$DB::drop_zeros or next;
-	  $time = defined($DB::times{$file}->[$i]) ?
-	    $DB::times{$file}->[$i] : 0;
-	  $ctime = defined($DB::ctimes{$file}->[$i]) ?
-	    $DB::ctimes{$file}->[$i] : 0;
+	  $stat = $profiles{$file}->[$i] || 0 or !$drop_zeros or next;
+	  $time = defined($times{$file}->[$i]) ?
+	    $times{$file}->[$i] : 0;
+	  $ctime = defined($ctimes{$file}->[$i]) ?
+	    $ctimes{$file}->[$i] : 0;
 	  write OUT;
 	}
       } else {
 	$line = "The code for $file is not in the symbol table.";
-	for ($i=1; $i <= $#{$DB::profiles{$file}}; $i++) {
+	for ($i=1; $i <= $#{$profiles{$file}}; $i++) {
 	  next unless 
-	    ($stat = $DB::profiles{$file}->[$i] || 0 or !$DB::drop_zeros);
-	  $time = defined($DB::times{$file}->[$i]) ?
-	    $DB::times{$file}->[$i] : 0;
-	  $ctime = defined($DB::ctimes{$file}->[$i]) ?
-	    $DB::ctimes{$file}->[$i] : 0;
+	    ($stat = $profiles{$file}->[$i] || 0 or !$drop_zeros);
+	  $time = defined($times{$file}->[$i]) ?
+	    $times{$file}->[$i] : 0;
+	  $ctime = defined($ctimes{$file}->[$i]) ?
+	    $ctimes{$file}->[$i] : 0;
 	  write OUT;
 	}
       }

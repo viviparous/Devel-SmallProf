@@ -1,5 +1,9 @@
 Revision history for Perl extension Devel::SmallProf.
 
+2.00_01 1 Nov 2003
+	- use lexicals and our vars
+	- require perl 5.8.0 or newer
+
 1.15   1 Nov 2003
 	- call subs on the right context (void/scalar/array)
 

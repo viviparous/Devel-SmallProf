@@ -12,7 +12,7 @@ close OUT;
 print +(/Profile of \(eval/ && m!Profile of t.part1\.b!) 
                                            ? "ok  1\n" : "not ok  1\n";
 my (@matches) = /Profile of/g;
-print +(@matches == 4)                     ? "ok  2\n" : "not ok  2\n";
+print +(@matches == 3)                     ? "ok  2\n" : "not ok  2\n";
 print +(/^\s*[16]\s.*:for \(1..5\).*$/m)   ? "ok  3\n" : "not ok  3\n";
 print +(!/\$x\+\+;/)                       ? "ok  4\n" : "not ok  4\n";
 print +(m'^\s*10\s.*\$z\+\+; \$z--;\s*$'m) ? "ok  5\n" : "not ok  5\n";
