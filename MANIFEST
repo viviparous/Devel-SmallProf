@@ -5,6 +5,8 @@ README
 SmallProf.pm
 TODO
 t/part1.t
+t/part1.b
 t/part2.t
 t/part:-3.t
+t/part:-3.b
 t/part:4.t

@@ -1,6 +1,6 @@
 package Devel::SmallProf; # To help the CPAN indexer to identify us
 
-$Devel::SmallProf::VERSION = '0.8'; 
+$Devel::SmallProf::VERSION = '0.9'; 
 
 package DB;
 
@@ -284,7 +284,13 @@ under the B<-d> flag.  For certain evals, caller() returns '(eval n)' for the
 filename and for others it doesn't.  For some of those which it does, the array
 C<@{'_E<lt>filename'}> contains the code of the eval.  For others it doesn't.
 Sometime, when I've an extra tuit or two, I'll figure out why and how I can 
-compensate for this.
+compensate for this.  (Note: 5.6.0 made some debugging changes.  This may now
+be fixed, I'm not sure).
+
+SmallProf must be invoked from the command line.  If it is included on the
+shebang line, the file in which it is included will not be visible in the
+symbol table.  Profiling will continue as expected, but the contents of the
+source lines will not be listed.  This is new as of 5.6.0.
 
 Comments, advice and questions are welcome.  If you see
 inefficent stuff in this module and have a better way, please let me know.
