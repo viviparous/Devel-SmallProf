@@ -1,6 +1,6 @@
 package Devel::SmallProf; # To help the CPAN indexer to identify us
 
-$Devel::SmallProf::VERSION = '0.10';
+$Devel::SmallProf::VERSION = '1.11';
 
 package DB;
 
