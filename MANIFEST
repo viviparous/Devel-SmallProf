@@ -4,6 +4,7 @@ Makefile.PL
 README
 SmallProf.pm
 TODO
-t/load.t
-t/use_part1.t
-t/use_part2.t
+t/part1.t
+t/part2.t
+t/part3.t
+t/part4.t

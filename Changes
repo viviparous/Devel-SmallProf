@@ -1,5 +1,12 @@
 Revision history for Perl extension Devel::SmallProf.
 
+0.5
+        - Added rudimentary subroutine profiling.
+        - Set ref to keep code listings around for non-subroutine-defining
+          evals.
+        - Added support for .smallprof (the options file).
+        - Lots of work to make Win32 stuff work correctly.
+
 0.4  12 Jan 1998
         - Removed the use vars--fully specifying all non-my variables.
         - Added $DB::profile flag to turn profiling on and off.

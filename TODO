@@ -1,18 +1,13 @@
 Good ideas that might be worth adding with appropriate attention to the
 dangers of feeping creaturism:
 
+- Use the rusage call (in UNIX, at least) and gettimeofday to remove dependance
+  on Time::HiRes and to give processor time reports.
+
+- Write a coverage script to go with SmallProf to do coverage analysis.
+
 From Philippe VERDRET:
 
-- Sub profile. It seems to me interesting to add this code to SmallProf:
-
-        sub sub {
-          $sub{$sub} =~ /.*:(\d+)-/;
-          $profile{$filename}->[$1]++ if defined $1;
-          &$sub;
-        }
-
-  So you can collect additionnal informations and deduce,
-  with filtering, a profile limited to the subroutines.
 - And some other ideas:
   o build a wrapper for launching the program to profile: so you can
     define and manipulate easily many profiling options. In the pass
@@ -48,11 +43,16 @@ From Philippe VERDRET:
 
   o don't compute the time statistics during the runtime, just collect
     informations and display the profile later, with a specific program.
+    (Editor's note.  Hmm... concerns about time and space usage.  Definitely
+      do not want to do disk i/o anytime during the run.)
 
 From Ed Peshko:
 
 - Add the ability to just profile a certain subroutine and all of its 
   underlying subroutines rather than the whole thing.
+  (Editor's note: The $DB::profile variable could do something like this.  
+    Set it to zero at the beginning of the script (or in .smallprof) and then
+    set it to 1 at the beginning of the sub and 0 at the end).
 
 - Another idea: I noticed that when SmallProf profiles, in subroutines it
   doesn't count all the 'sub code' underneath the code itself. Hence, when you
@@ -64,4 +64,8 @@ From Ed Peshko:
 
   a comes out as '.005' seconds. How easy (as an option) would it be to have a
   summation, so that the call to a() reflects the call to take_a_long_time()?
+
+  (Editor's note:  The sub sub (just added) might allow something along these
+    lines, but there doesn't seem to be a call made when a subroutine *returns*
+    and I'm afraid that the cost of faking it up would be high).
 

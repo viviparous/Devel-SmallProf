@@ -3,13 +3,15 @@
 $DB::drop_zeros = 1;
 %DB::packages = ( 'main' => 1, 'A' => 0, 'C' => 1 );
 $DB::profile = 0;
-sleep(1);
+$x++; $x++;
 $DB::profile = 1;
 for (1..5) {
   $z++;
   $z--;
   $z++; $z--;
 }
+
+sleep(1);
 
 package A;
 

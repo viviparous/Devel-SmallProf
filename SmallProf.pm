@@ -1,6 +1,6 @@
 package Devel::SmallProf; # To help the CPAN indexer to identify us
 
-$Devel::SmallProf::VERSION = '0.4';
+$Devel::SmallProf::VERSION = '0.5';
 
 package DB;
 
@@ -10,19 +10,20 @@ use Time::HiRes 'time';
 
 use strict;
 
-$DB::drop_zeros = 0;
-$DB::profile = 1;
-
 BEGIN {
+  $DB::drop_zeros = 0;
+  $DB::profile = 1;
+  if (-e '.smallprof') {
+    do '.smallprof';
+  }
   $DB::prevf = '';
   $DB::prevl = 0;
-  my($done,$diff);
+  my($diff);
 
   my($testDB) = sub {
-    $DB::profile || return;
     my($pkg,$filename,$line) = caller;
+    $DB::profile || return;
     %DB::packages && !$DB::packages{$pkg} && return;
-    my($done,$delta);
   };
 
   # "Null time" compensation code
@@ -30,8 +31,8 @@ BEGIN {
   for (1..100) {
     $DB::start = time;
     &$testDB;
-    $done = time;
-    $diff = $done - $DB::start;
+    $DB::done = time;
+    $diff = $DB::done - $DB::start;
     $DB::nulltime += $diff;
   }
   $DB::nulltime /= 100;
@@ -40,13 +41,20 @@ BEGIN {
 }
 
 sub DB {
-  $DB::profile || return;
   my($pkg,$filename,$line) = caller;
+  $DB::profile || return;
   %DB::packages && !$DB::packages{$pkg} && return;
-  my($done,$delta);
-  $done = time;
+  $DB::done = time;
 
-  $delta = $done - $DB::start;
+  # Now save the _< array for later reference.  If we don't do this here, 
+  # evals which do not define subroutines will disappear.
+  no strict 'refs';
+  $DB::listings{$filename} = \@{"main::_<$filename"} if 
+    defined(@{"main::_<$filename"});
+  use strict 'refs';
+
+  my($delta);
+  $delta = $DB::done - $DB::start;
   $delta = ($delta > $DB::nulltime) ? $delta - $DB::nulltime : 0;
   $DB::profiles{$filename}->[$line]++;
   $DB::times{$DB::prevf}->[$DB::prevl] += $delta;
@@ -57,9 +65,9 @@ sub DB {
 
 END {
   # Get time on last line executed.
-  my($done,$delta);
-  $done = time;
-  $delta = $done - $DB::start;
+  $DB::done = time;
+  my($delta);
+  $delta = $DB::done - $DB::start;
   $delta = ($delta > $DB::nulltime) ? $delta - $DB::nulltime : 0;
   $DB::times{$DB::prevf}->[$DB::prevl] += $delta;
 
@@ -88,14 +96,14 @@ $line
 
   foreach $file (sort keys %DB::profiles) {
     $- = 0;
-    if (defined($main::{"_<$file"})) {
-      *DB::lines = $main::{"_<$file"};
+    if (defined($DB::listings{$file})) {
       $i = -1;
-      foreach $line (@DB::lines) {
+      foreach $line (@{$DB::listings{$file}}) {
         ++$i or next;
         chomp($line);
         $stat = $DB::profiles{$file}->[$i] || 0 or !$DB::drop_zeros or next;
-        $time = $DB::times{$file}->[$i] || 0;
+        $time = defined($DB::times{$file}->[$i]) ?
+                        $DB::times{$file}->[$i] : 0;
         write OUT;
       }
     } else {
@@ -103,12 +111,23 @@ $line
       for ($i=1; $i <= $#{$DB::profiles{$file}}; $i++) {
         next unless 
           ($stat = $DB::profiles{$file}->[$i] || 0 or !$DB::drop_zeros);
-        $time = $DB::times{$file}->[$i] || 0;
+        $time = defined($DB::times{$file}->[$i]) ?
+                        $DB::times{$file}->[$i] : 0;
         write OUT;
       } 
     }
   }
   close OUT;
+}
+
+sub sub {
+  no strict 'refs';
+  goto &$DB::sub unless $DB::profile;
+  $DB::sub{$DB::sub} =~ /(.*):(\d+)-/;
+  $DB::profiles{$1}->[$2]++ if defined $2;
+  $DB::listings{$1} = \@{"main::_<$1"} if defined(@{"main::_<$1"});
+  &$DB::sub;
+  use strict 'refs';
 }
 
 1;
@@ -128,8 +147,7 @@ Devel::SmallProf - per-line Perl profiler
 The Devel::SmallProf profiler is focused on the time taken for a program run on
 a line-by-line basis.  It is intended to be as "small" in terms of impact on
 the speed and memory usage of the profiled program as possible and also in
-terms of being simple to use.  It collects statistics on the run times of the
-lines in the various files being run.  Those statistics are placed in the file
+terms of being simple to use.  Those statistics are placed in the file
 F<smallprof.out> in the following format:
 
         <num> <time> <file>:<line>:<text>
@@ -164,9 +182,9 @@ or a perl script:
 
 =item * 
 
-Determining the accuracy or signifiance of the results is left as an 
-exercise for the reader.  I've tried to keep the timings pretty much just to 
-the profiled code, but no guarantees of any kind are made.
+The timings are made with "wall time" (time in real life vs. cpu usage).  I'd
+like eventually to report cpu time, but that isn't terribly easy to get 
+across platforms.
 
 =item *
 
@@ -181,7 +199,7 @@ Win32 version which depends on Win32::API.
 
 =back
 
-=head1 VARIABLES
+=head1 OPTIONS
 
 SmallProf has 3 variables which can be used during your script to affect what
 gets profiled.
@@ -191,7 +209,8 @@ gets profiled.
 =item *
 
 If you do not wish to see lines which were never called, set the variable
-C<$DB::drop_zeros = 1>.
+C<$DB::drop_zeros = 1>.  With C<drop_zeros> set, SmallProf can be used for 
+basic coverage analysis.
 
 =item *
 
@@ -208,16 +227,37 @@ example, to see only the code in packages C<main> and C<Test1>, do this:
 
 	%DB::packages = ( 'main' => 1, 'Test1' => 1 );
 
+=item *
+
+These variables can be put in a file called F<.smallprof> in the current 
+directory.  For example, a F<.smallprof> containing
+
+	$DB::drop_zeros = 1;
+	$DB::profile = 0;
+
+will set SmallProf to not report lines which are never touched for any file
+profiled in that directory and will set profiling off initially (presumably to
+be turned on only for a small portion of code).
+
 =back
 
 =head1 INSTALLATION
 
-Makefile.PL checks to see if this is a Win32 platform and runs a conversion
-subroutine on SmallProf prior to installation.  I've not been able to test this,
-but have hopes that it will install on most platforms smoothly.  As always,
-please let me know.
+Just the usual
+
+	perl Makefile.PL
+	make
+	make test
+	make install
+
+and should install fine via the CPAN module.  Makefile.PL checks to see if this
+is a Win32 platform and runs a conversion subroutine on SmallProf prior to
+installation.
 
 =head1 BUGS
+
+Subroutine calls are currently not under the control of %DB::packages.  This
+should not be a great inconvenience in general.  
 
 The handling of evals is bad news.  This is due to Perl's handling of evals 
 under the B<-d> flag.  For certain evals, caller() returns '(eval n)' for the 
@@ -225,9 +265,6 @@ filename and for others it doesn't.  For some of those which it does, the array
 C<@{'_E<lt>filename'}> contains the code of the eval.  For others it doesn't.
 Sometime, when I've an extra tuit or two, I'll figure out why and how I can 
 compensate for this.
-
-The conversion to the Win32 version is done during the call to Makefile.PL.
-This seems fairly inappropriate, but I'm not sure where better to do it.
 
 Comments, advice and questions are welcome.  If you see
 inefficent stuff in this module and have a better way, please let me know.
