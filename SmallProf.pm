@@ -1,6 +1,6 @@
 package Devel::SmallProf; # To help the CPAN indexer to identify us
 
-$Devel::SmallProf::VERSION = '1.11';
+$Devel::SmallProf::VERSION = '1.12';
 
 package DB;
 
@@ -148,6 +148,9 @@ sub sub {
     $DB::profiles{$m}->[$s]++;
     $DB::listings{$m} = \@{"main::_<$m"} if defined(@{"main::_<$m"});
   }
+  my($u,$s,$cu,$cs) = times;
+  $DB::cstart = $u+$s+$cu+$cs;
+  $DB::start = time;
   goto &$DB::sub;
 }
 

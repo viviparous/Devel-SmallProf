@@ -1,5 +1,9 @@
 Revision history for Perl extension Devel::SmallProf.
 
+1.12  31 Oct 2003
+	- Compensate DB::dub overhead (patch by Chris Sander)
+	- README changed to follow current uses
+
 1.11  19 May 2003
 	- version number bumped to 1.xx because 0.9 > 0.10
 
