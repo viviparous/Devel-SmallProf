@@ -1,14 +1,44 @@
 package Devel::SmallProf; # To help the CPAN indexer to identify us
 
-$Devel::SmallProf::VERSION = '0.9'; 
+$Devel::SmallProf::VERSION = '0.10';
 
 package DB;
 
 require 5.000;
 
-use Time::HiRes 'time';
-
 use strict;
+
+sub time ();
+
+sub DB {
+  my($pkg,$filename,$line) = caller;
+  $DB::profile || return;
+  %DB::packages && !$DB::packages{$pkg} && return;
+  my($u,$s,$cu,$cs) = times;
+  $DB::cdone = $u+$s+$cu+$cs;
+  $DB::done = time;
+
+  # Now save the _< array for later reference.  If we don't do this here, 
+  # evals which do not define subroutines will disappear.
+  no strict 'refs';
+  $DB::listings{$filename} = \@{"main::_<$filename"} if 
+    defined(@{"main::_<$filename"});
+  use strict 'refs';
+
+  my($delta);
+  $delta = $DB::done - $DB::start;
+  $delta = ($delta > $DB::nulltime) ? $delta - $DB::nulltime : 0;
+  $DB::profiles{$filename}->[$line]++;
+  $DB::times{$DB::prevf}->[$DB::prevl] += $delta;
+  $DB::ctimes{$DB::prevf}->[$DB::prevl] += ($DB::cdone - $DB::cstart);
+  ($DB::prevf, $DB::prevl) = ($filename, $line);
+
+  ($u,$s,$cu,$cs) = times;
+  $DB::cstart = $u+$s+$cu+$cs;
+  $DB::start = time;
+}
+
+use Time::HiRes 'time';
 
 BEGIN {
   $DB::drop_zeros = 0;
@@ -42,34 +72,6 @@ BEGIN {
   $DB::nulltime /= 100;
 
   my($u,$s,$cu,$cs) = times;
-  $DB::cstart = $u+$s+$cu+$cs;
-  $DB::start = time;
-}
-
-sub DB {
-  my($pkg,$filename,$line) = caller;
-  $DB::profile || return;
-  %DB::packages && !$DB::packages{$pkg} && return;
-  my($u,$s,$cu,$cs) = times;
-  $DB::cdone = $u+$s+$cu+$cs;
-  $DB::done = time;
-
-  # Now save the _< array for later reference.  If we don't do this here, 
-  # evals which do not define subroutines will disappear.
-  no strict 'refs';
-  $DB::listings{$filename} = \@{"main::_<$filename"} if 
-    defined(@{"main::_<$filename"});
-  use strict 'refs';
-
-  my($delta);
-  $delta = $DB::done - $DB::start;
-  $delta = ($delta > $DB::nulltime) ? $delta - $DB::nulltime : 0;
-  $DB::profiles{$filename}->[$line]++;
-  $DB::times{$DB::prevf}->[$DB::prevl] += $delta;
-  $DB::ctimes{$DB::prevf}->[$DB::prevl] += ($DB::cdone - $DB::cstart);
-  ($DB::prevf, $DB::prevl) = ($filename, $line);
-
-  ($u,$s,$cu,$cs) = times;
   $DB::cstart = $u+$s+$cu+$cs;
   $DB::start = time;
 }
@@ -296,17 +298,22 @@ Comments, advice and questions are welcome.  If you see
 inefficent stuff in this module and have a better way, please let me know.
 
 =head1 AUTHOR
- 
-Ted Ashton E<lt>ashted@southern.eduE<gt>
- 
+
+Devel::SmallProf was developed by Ted Ashton
+E<lt>ashted@cpan.orgE<gt>. It is currently being maintained by Salvador
+Fandiño E<lt>sfandino@yahoo.comE<gt>.
+
+
 SmallProf was developed from code originally posted to usenet by Philippe
 Verdret E<lt>philippe.verdret@sonovision-itep.frE<gt>.  Special thanks to
 Geoffrey Broadwell E<lt>habusan2@sprynet.comE<gt> for his assistance on the
 Win32 platform and to Philippe for his patient assistance in testing and 
 debugging.
- 
-Copyright (c) 1997 Ted Ashton
- 
+
+Copyright (c) 1997-2000 Ted Ashton
+
+Copyright (c) 2003 Salvador Fandiño
+
 This module is free software and can be redistributed and/or modified under the
 same terms as Perl itself.
 
@@ -315,3 +322,4 @@ same terms as Perl itself.
 L<Devel::DProf>, L<Time::HiRes>.
 
 =cut
+

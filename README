@@ -45,9 +45,9 @@ NOTES
         wall time. On some systems this column may be useful. On others it
         may not.
 
-    *   SmallProf does attempt to make up for its shortcomings by subtracting a
-        small amount from each timing (null time compensation). This should
-        help somewhat with the accuracy.
+    *   SmallProf does attempt to make up for its shortcomings by
+        subtracting a small amount from each timing (null time
+        compensation). This should help somewhat with the accuracy.
 
     *   SmallProf depends on the Time::HiRes package to do its timings. It
         claims to require version 1.20, but may work with earlier versions,
@@ -58,23 +58,23 @@ OPTIONS
     what gets profiled.
 
     *   If you do not wish to see lines which were never called, set the
-        variable `$DB::drop_zeros = 1'. With `drop_zeros' set, SmallProf can
+        variable "$DB::drop_zeros = 1". With "drop_zeros" set, SmallProf can
         be used for basic coverage analysis.
 
-    *   To turn off profiling for a time, insert a `$DB::profile = 0' into your
-        code (profiling may be turned back on with `$DB::profile = 1'). All
-        of the time between profiling being turned off and back on again
-        will be lumped together and reported on the `$DB::profile = 0' line.
+    *   To turn off profiling for a time, insert a "$DB::profile = 0" into
+        your code (profiling may be turned back on with "$DB::profile = 1").
+        All of the time between profiling being turned off and back on again
+        will be lumped together and reported on the "$DB::profile = 0" line.
         This can be used to summarize a subroutine call or a chunk of code.
 
-    *   To only profile code in a certain package, set the `%DB::packages'
-        array. For example, to see only the code in packages `main' and
-        `Test1', do this:
+    *   To only profile code in a certain package, set the %DB::packages
+        array. For example, to see only the code in packages "main" and
+        "Test1", do this:
 
                 %DB::packages = ( 'main' => 1, 'Test1' => 1 );
 
-    *   These variables can be put in a file called .smallprof in the current
-        directory. For example, a .smallprof containing
+    *   These variables can be put in a file called .smallprof in the
+        current directory. For example, a .smallprof containing
 
                 $DB::drop_zeros = 1;
                 $DB::profile = 0;
@@ -101,27 +101,37 @@ BUGS
     The handling of evals is bad news. This is due to Perl's handling of
     evals under the -d flag. For certain evals, caller() returns '(eval n)'
     for the filename and for others it doesn't. For some of those which it
-    does, the array `@{'_<filename'}' contains the code of the eval. For
+    does, the array "@{'_<filename'}" contains the code of the eval. For
     others it doesn't. Sometime, when I've an extra tuit or two, I'll figure
-    out why and how I can compensate for this.
+    out why and how I can compensate for this. (Note: 5.6.0 made some
+    debugging changes. This may now be fixed, I'm not sure).
+
+    SmallProf must be invoked from the command line. If it is included on
+    the shebang line, the file in which it is included will not be visible
+    in the symbol table. Profiling will continue as expected, but the
+    contents of the source lines will not be listed. This is new as of
+    5.6.0.
 
     Comments, advice and questions are welcome. If you see inefficent stuff
     in this module and have a better way, please let me know.
 
 AUTHOR
- 
-Ted Ashton <ashted@southern.edu>
- 
-SmallProf was developed from code originally posted to usenet by Philippe
-Verdret <philippe.verdret@sonovision-itep.fr>.  Special thanks to
-Geoffrey Broadwell <habusan2@sprynet.com> for his assistance on the
-Win32 platform and to Philippe for his patient assistance in testing and 
-debugging.
- 
-Copyright (c) 1997 Ted Ashton
- 
-This module is free software and can be redistributed and/or modified under the
-same terms as Perl itself.
+    Devel::SmallProf was developed by Ted Ashton <ashted@cpan.org>. It is
+    currently being maintained by Salvador Fandiño <sfandino@yahoo.com>.
+
+    SmallProf was developed from code originally posted to usenet by
+    Philippe Verdret <philippe.verdret@sonovision-itep.fr>. Special thanks
+    to Geoffrey Broadwell <habusan2@sprynet.com> for his assistance on the
+    Win32 platform and to Philippe for his patient assistance in testing and
+    debugging.
+
+    Copyright (c) 1997-2000 Ted Ashton
+
+    Copyright (c) 2003 Salvador Fandiño
+
+    This module is free software and can be redistributed and/or modified
+    under the same terms as Perl itself.
+
 SEE ALSO
-    the Devel::DProf manpage, the Time::HiRes manpage.
+    Devel::DProf, Time::HiRes.
 
