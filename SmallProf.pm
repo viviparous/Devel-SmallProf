@@ -1,9 +1,9 @@
 package Devel::SmallProf; # To help the CPAN indexer to identify us
-our $VERSION = '2.00_02';
+our $VERSION = '2.00_03';
 
 package DB;
 
-require 5.008;
+require 5.006;
 
 # do not profile subs
 BEGIN { $^P=0x122 }
@@ -393,7 +393,7 @@ debugging.
 
 Copyright (c) 1997-2000 Ted Ashton
 
-Copyright (c) 2003 Salvador Fandiño
+Copyright (c) 2003-2004 Salvador Fandiño
 
 This module is free software and can be redistributed and/or modified under the
 same terms as Perl itself.

@@ -1,5 +1,12 @@
 Revision history for Perl extension Devel::SmallProf.
 
+2.00_03 28 Oct 2004
+	- require only perl 5.6 (reported by Alex Kapranoff)
+
+2.00_02 2 Nov 2003
+	- do not monitor sb entries
+	- test updated for no subs
+
 2.00_01 1 Nov 2003
 	- use lexicals and our vars
 	- require perl 5.8.0 or newer
