@@ -1,5 +1,8 @@
 Revision history for Perl extension Devel::SmallProf.
 
+1.15   1 Nov 2003
+	- call subs on the right context (void/scalar/array)
+
 1.14  31 Oct 2003
 	- time function from Time::HiRes was not being used!
 	- suppress warning messages

@@ -1,10 +1,10 @@
 package Devel::SmallProf; # To help the CPAN indexer to identify us
 
-$Devel::SmallProf::VERSION = '1.14';
+$Devel::SmallProf::VERSION = '1.15';
 
 package DB;
 
-require 5.000;
+require 5.006;
 
 # BEGIN { eval "require 5.008; 1" and $^P=0x122 }
 
@@ -38,6 +38,21 @@ sub DB {
   ($u,$s,$cu,$cs) = times;
   $DB::cstart = $u+$s+$cu+$cs;
   $DB::start = Time::HiRes::time;
+}
+
+
+sub sub {
+  no strict 'refs';
+  return &{$DB::sub}(@_) unless $DB::profile;
+  if (defined($DB::sub{$DB::sub})) {
+    my($m,$s) = ($DB::sub{$DB::sub} =~ /.+(?=:)|[^:-]+/g);
+    $DB::profiles{$m}->[$s]++;
+    $DB::listings{$m} = \@{"main::_<$m"} if defined(@{"main::_<$m"});
+  }
+  my($u,$s,$cu,$cs) = times;
+  $DB::cstart = $u+$s+$cu+$cs;
+  $DB::start = Time::HiRes::time;
+  &{$DB::sub}(@_);
 }
 
 use Time::HiRes; # 'time';
@@ -177,20 +192,6 @@ $stat,$time,$ctime,$i,$line
     }
     close OUT;
   }
-}
-
-sub sub {
-  no strict 'refs';
-  goto &$DB::sub unless $DB::profile;
-  if (defined($DB::sub{$DB::sub})) {
-    my($m,$s) = ($DB::sub{$DB::sub} =~ /.+(?=:)|[^:-]+/g);
-    $DB::profiles{$m}->[$s]++;
-    $DB::listings{$m} = \@{"main::_<$m"} if defined(@{"main::_<$m"});
-  }
-  my($u,$s,$cu,$cs) = times;
-  $DB::cstart = $u+$s+$cu+$cs;
-  $DB::start = Time::HiRes::time;
-  goto &$DB::sub;
 }
 
 1;
