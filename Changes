@@ -1,5 +1,12 @@
 Revision history for Perl extension Devel::SmallProf.
 
+0.6  11 Jul 1999
+        - Cleanup on part4.t and part1.t (Thanks!)
+        - Removed special Win32 support as Time::HiRes now works on Win32 
+        - Fixed a bug in sub sub where $1 and $2 were getting clobbered.
+        - Increased size of execution count column
+        - Added CPU times
+
 0.5
         - Added rudimentary subroutine profiling.
         - Set ref to keep code listings around for non-subroutine-defining

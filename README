@@ -5,31 +5,30 @@ SYNOPSIS
             perl5 -d:SmallProf test.pl
 
 DESCRIPTION
-    The Devel::SmallProf profiler is focused on the time taken for a
-    program run on a line-by-line basis. It is intended to be as
-    "small" in terms of impact on the speed and memory usage of the
-    profiled program as possible and also in terms of being simple
-    to use. Those statistics are placed in the file smallprof.out in
-    the following format:
+    The Devel::SmallProf profiler is focused on the time taken for a program
+    run on a line-by-line basis. It is intended to be as "small" in terms of
+    impact on the speed and memory usage of the profiled program as possible
+    and also in terms of being simple to use. Those statistics are placed in
+    the file smallprof.out in the following format:
 
-            <num> <time> <file>:<line>:<text>
+            <num> <time> <ctime> <file>:<line>:<text>
 
-    where <num> is the number of times that the line was executed,
-    <time> is the amount of time spent executing it and <file>,
-    <line> and <text> are the filename, the line number and the
-    actual text of the executed line (read from the file).
+    where <num> is the number of times that the line was executed, <time> is
+    the amount of "wall time" (time according the the clock on the wall vs.
+    cpu time) spent executing it, <ctime> is the amount of cpu time expended
+    on it and <file>, <line> and <text> are the filename, the line number
+    and the actual text of the executed line (read from the file).
 
-    The package uses the debugging hooks in Perl and thus needs the
-    -d switch, so to profile test.pl, use the command:
+    The package uses the debugging hooks in Perl and thus needs the -d
+    switch, so to profile test.pl, use the command:
 
             perl5 -d:SmallProf test.pl
 
-    Once the script is done, the statistics in smallprof.out can be
-    sorted to show which lines took the most time. The output can be
-    sorted to find which lines take the longest, either with the
-    sort command:
+    Once the script is done, the statistics in smallprof.out can be sorted
+    to show which lines took the most time. The output can be sorted to find
+    which lines take the longest, either with the sort command:
 
-            sort -nrk 2 smallprof.out | less
+            sort -k 2nr,2 smallprof.out | less
 
     or a perl script:
 
@@ -40,48 +39,50 @@ DESCRIPTION
             print join('',@sorted);
 
 NOTES
-    *   The timings are made with "wall time" (time in real life vs. cpu
-        usage). I'd like eventually to report cpu time, but that
-        isn't terribly easy to get across platforms.
+    *   The "wall time" readings come from Time::HiRes and are reasonably
+        useful, at least on my system. The cpu times come from the 'times'
+        built-in and the granularity is not necessarily as small as with the
+        wall time. On some systems this column may be useful. On others it
+        may not.
 
-    *   SmallProf does attempt to make up for its shortcomings by
-        subtracting a small amount from each timing (null time
-        compensation). This should help somewhat with the accuracy.
+    *   SmallProf does attempt to make up for its shortcomings by subtracting a
+        small amount from each timing (null time compensation). This should
+        help somewhat with the accuracy.
 
-    *   SmallProf depends on the Time::HiRes package to do its timings
-        except for the Win32 version which depends on Win32::API.
+    *   SmallProf depends on the Time::HiRes package to do its timings. It
+        claims to require version 1.20, but may work with earlier versions,
+        depending on your platform.
 
 OPTIONS
-    SmallProf has 3 variables which can be used during your script
-    to affect what gets profiled.
+    SmallProf has 3 variables which can be used during your script to affect
+    what gets profiled.
 
     *   If you do not wish to see lines which were never called, set the
-        variable `$DB::drop_zeros = 1'. With `drop_zeros' set,
-        SmallProf can be used for basic coverage analysis.
+        variable `$DB::drop_zeros = 1'. With `drop_zeros' set, SmallProf can
+        be used for basic coverage analysis.
 
-    *   To turn off profiling for a time, insert a `$DB::profile = 0'
-        into your code (profiling may be turned back on with
-        `$DB::profile = 1'). All of the time between profiling being
-        turned off and back on again will be lumped together and
-        reported on the `$DB::profile = 0' line. This can be used to
-        summarize a subroutine call or a chunk of code.
+    *   To turn off profiling for a time, insert a `$DB::profile = 0' into your
+        code (profiling may be turned back on with `$DB::profile = 1'). All
+        of the time between profiling being turned off and back on again
+        will be lumped together and reported on the `$DB::profile = 0' line.
+        This can be used to summarize a subroutine call or a chunk of code.
 
-    *   To only profile code in a certain package, set the
-        `%DB::packages' array. For example, to see only the code in
-        packages `main' and `Test1', do this:
+    *   To only profile code in a certain package, set the `%DB::packages'
+        array. For example, to see only the code in packages `main' and
+        `Test1', do this:
 
                 %DB::packages = ( 'main' => 1, 'Test1' => 1 );
 
-    *   These variables can be put in a file called .smallprof in the
-        current directory. For example, a .smallprof containing
+    *   These variables can be put in a file called .smallprof in the current
+        directory. For example, a .smallprof containing
 
                 $DB::drop_zeros = 1;
                 $DB::profile = 0;
 
-        will set SmallProf to not report lines which are never
-        touched for any file profiled in that directory and will set
-        profiling off initially (presumably to be turned on only for
-        a small portion of code).
+        will set SmallProf to not report lines which are never touched for
+        any file profiled in that directory and will set profiling off
+        initially (presumably to be turned on only for a small portion of
+        code).
 
 INSTALLATION
     Just the usual
@@ -91,26 +92,21 @@ INSTALLATION
             make test
             make install
 
-    and should install fine via the CPAN module. Makefile.PL checks
-    to see if this is a Win32 platform and runs a conversion
-    subroutine on SmallProf prior to installation.
+    and should install fine via the CPAN module.
 
 BUGS
-    Subroutine calls are currently not under the control of
-    %DB::packages. This should not be a great inconvenience in
-    general.
+    Subroutine calls are currently not under the control of %DB::packages.
+    This should not be a great inconvenience in general.
 
-    The handling of evals is bad news. This is due to Perl's
-    handling of evals under the -d flag. For certain evals, caller()
-    returns '(eval n)' for the filename and for others it doesn't.
-    For some of those which it does, the array `@{'_<filename'}'
-    contains the code of the eval. For others it doesn't. Sometime,
-    when I've an extra tuit or two, I'll figure out why and how I
-    can compensate for this.
+    The handling of evals is bad news. This is due to Perl's handling of
+    evals under the -d flag. For certain evals, caller() returns '(eval n)'
+    for the filename and for others it doesn't. For some of those which it
+    does, the array `@{'_<filename'}' contains the code of the eval. For
+    others it doesn't. Sometime, when I've an extra tuit or two, I'll figure
+    out why and how I can compensate for this.
 
-    Comments, advice and questions are welcome. If you see
-    inefficent stuff in this module and have a better way, please
-    let me know.
+    Comments, advice and questions are welcome. If you see inefficent stuff
+    in this module and have a better way, please let me know.
 
 AUTHOR
  
@@ -118,13 +114,13 @@ Ted Ashton <ashted@southern.edu>
  
 SmallProf was developed from code originally posted to usenet by Philippe
 Verdret <philippe.verdret@sonovision-itep.fr>.  Special thanks to
-Geoffrey Broadwell <habusan2@sprynet.com> for the Win32 code.
+Geoffrey Broadwell <habusan2@sprynet.com> for his assistance on the
+Win32 platform
  
 Copyright (c) 1997 Ted Ashton
  
 This module is free software and can be redistributed and/or modified under the
 same terms as Perl itself.
 SEE ALSO
-    the Devel::DProf manpage, the Time::HiRes manpage, the
-    Win32::API manpage
+    the Devel::DProf manpage, the Time::HiRes manpage.
 

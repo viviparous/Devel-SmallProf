@@ -1,6 +1,6 @@
 package Devel::SmallProf; # To help the CPAN indexer to identify us
 
-$Devel::SmallProf::VERSION = '0.5';
+$Devel::SmallProf::VERSION = '0.6';
 
 package DB;
 
@@ -18,7 +18,7 @@ BEGIN {
   }
   $DB::prevf = '';
   $DB::prevl = 0;
-  my($diff);
+  my($diff,$cdiff);
 
   my($testDB) = sub {
     my($pkg,$filename,$line) = caller;
@@ -29,14 +29,20 @@ BEGIN {
   # "Null time" compensation code
   $DB::nulltime = 0;
   for (1..100) {
+    my($u,$s,$cu,$cs) = times;
+    $DB::cstart = $u+$s+$cu+$cs;
     $DB::start = time;
     &$testDB;
+    ($u,$s,$cu,$cs) = times;
+    $DB::cdone = $u+$s+$cu+$cs;
     $DB::done = time;
     $diff = $DB::done - $DB::start;
     $DB::nulltime += $diff;
   }
   $DB::nulltime /= 100;
 
+  my($u,$s,$cu,$cs) = times;
+  $DB::cstart = $u+$s+$cu+$cs;
   $DB::start = time;
 }
 
@@ -44,6 +50,8 @@ sub DB {
   my($pkg,$filename,$line) = caller;
   $DB::profile || return;
   %DB::packages && !$DB::packages{$pkg} && return;
+  my($u,$s,$cu,$cs) = times;
+  $DB::cdone = $u+$s+$cu+$cs;
   $DB::done = time;
 
   # Now save the _< array for later reference.  If we don't do this here, 
@@ -58,23 +66,29 @@ sub DB {
   $delta = ($delta > $DB::nulltime) ? $delta - $DB::nulltime : 0;
   $DB::profiles{$filename}->[$line]++;
   $DB::times{$DB::prevf}->[$DB::prevl] += $delta;
+  $DB::ctimes{$DB::prevf}->[$DB::prevl] += ($DB::cdone - $DB::cstart);
   ($DB::prevf, $DB::prevl) = ($filename, $line);
 
+  ($u,$s,$cu,$cs) = times;
+  $DB::cstart = $u+$s+$cu+$cs;
   $DB::start = time;
 }
 
 END {
   # Get time on last line executed.
+  my($u,$s,$cu,$cs) = times;
+  $DB::cdone = $u+$s+$cu+$cs;
   $DB::done = time;
   my($delta);
   $delta = $DB::done - $DB::start;
   $delta = ($delta > $DB::nulltime) ? $delta - $DB::nulltime : 0;
   $DB::times{$DB::prevf}->[$DB::prevl] += $delta;
+  $DB::ctimes{$DB::prevf}->[$DB::prevl] += ($DB::cdone - $DB::cstart);
 
   # Now write out the results.
   open(OUT,">smallprof.out");
   select OUT;
-  my($i,$stat,$time,$line,$file,$page);
+  my($i,$stat,$time,$ctime,$line,$file,$page);
   $page = 1;
 
 format OUT_TOP=
@@ -82,15 +96,16 @@ format OUT_TOP=
          @|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Page @<<
 "Profile of $file",$page++
 ===============================================================================
+count  wall tm  cpu time line 
 .
 format OUT= 
-@##### @.###### @####:^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-$stat,$time,$i,$line
+@######## @.###### @.###### @####:^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+$stat,$time,$ctime,$i,$line
 .
 format OUT2= 
-@##### @.###### @####:^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-$stat,$time,$i,$line
-~~                    ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+@######## @.###### @.###### @####:^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+$stat,$time,$ctime,$i,$line
+~~                                ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 $line
 .
 
@@ -104,6 +119,8 @@ $line
         $stat = $DB::profiles{$file}->[$i] || 0 or !$DB::drop_zeros or next;
         $time = defined($DB::times{$file}->[$i]) ?
                         $DB::times{$file}->[$i] : 0;
+        $ctime = defined($DB::ctimes{$file}->[$i]) ?
+                         $DB::ctimes{$file}->[$i] : 0;
         write OUT;
       }
     } else {
@@ -113,6 +130,8 @@ $line
           ($stat = $DB::profiles{$file}->[$i] || 0 or !$DB::drop_zeros);
         $time = defined($DB::times{$file}->[$i]) ?
                         $DB::times{$file}->[$i] : 0;
+        $ctime = defined($DB::ctimes{$file}->[$i]) ?
+                         $DB::ctimes{$file}->[$i] : 0;
         write OUT;
       } 
     }
@@ -123,9 +142,10 @@ $line
 sub sub {
   no strict 'refs';
   goto &$DB::sub unless $DB::profile;
-  $DB::sub{$DB::sub} =~ /(.*):(\d+)-/;
-  $DB::profiles{$1}->[$2]++ if defined $2;
-  $DB::listings{$1} = \@{"main::_<$1"} if defined(@{"main::_<$1"});
+  my($m,$s) = split /[:-]/,$DB::sub{$DB::sub};  # Don't use regex so as not to
+                                                # clobber $1 and $2.
+  $DB::profiles{$m}->[$s]++ if defined $s;
+  $DB::listings{$m} = \@{"main::_<$m"} if defined(@{"main::_<$m"});
   &$DB::sub;
   use strict 'refs';
 }
@@ -150,12 +170,13 @@ the speed and memory usage of the profiled program as possible and also in
 terms of being simple to use.  Those statistics are placed in the file
 F<smallprof.out> in the following format:
 
-        <num> <time> <file>:<line>:<text>
+        <num> <time> <ctime> <file>:<line>:<text>
 
 where <num> is the number of times that the line was executed, <time> is the
-amount of time spent executing it and <file>, <line> and <text> are the 
-filename, the line number and the actual text of the executed line (read from
-the file).
+amount of "wall time" (time according the the clock on the wall vs. cpu time)
+spent executing it, <ctime> is the amount of cpu time expended on it and
+<file>, <line> and <text> are the filename, the line number and the actual text
+of the executed line (read from the file).
 
 The package uses the debugging hooks in Perl and thus needs the B<-d> switch,
 so to profile F<test.pl>, use the command:
@@ -166,7 +187,7 @@ Once the script is done, the statistics in F<smallprof.out> can be sorted to
 show which lines took the most time.  The output can be sorted to find which
 lines take the longest, either with the sort command:
 
-	sort -nrk 2 smallprof.out | less
+	sort -k 2nr,2 smallprof.out | less
 
 or a perl script:
 
@@ -182,9 +203,10 @@ or a perl script:
 
 =item * 
 
-The timings are made with "wall time" (time in real life vs. cpu usage).  I'd
-like eventually to report cpu time, but that isn't terribly easy to get 
-across platforms.
+The "wall time" readings come from Time::HiRes and are reasonably useful, at
+least on my system.  The cpu times come from the 'times' built-in and the
+granularity is not necessarily as small as with the wall time.  On some systems
+this column may be useful.  On others it may not.
 
 =item *
 
@@ -194,8 +216,9 @@ with the accuracy.
 
 =item * 
 
-SmallProf depends on the Time::HiRes package to do its timings except for the
-Win32 version which depends on Win32::API.
+SmallProf depends on the Time::HiRes package to do its timings.  It claims to
+require version 1.20, but may work with earlier versions, depending on your
+platform.
 
 =back
 
@@ -250,9 +273,7 @@ Just the usual
 	make test
 	make install
 
-and should install fine via the CPAN module.  Makefile.PL checks to see if this
-is a Win32 platform and runs a conversion subroutine on SmallProf prior to
-installation.
+and should install fine via the CPAN module.
 
 =head1 BUGS
 
@@ -275,7 +296,8 @@ Ted Ashton E<lt>ashted@southern.eduE<gt>
  
 SmallProf was developed from code originally posted to usenet by Philippe
 Verdret E<lt>philippe.verdret@sonovision-itep.frE<gt>.  Special thanks to
-Geoffrey Broadwell E<lt>habusan2@sprynet.comE<gt> for the Win32 code.
+Geoffrey Broadwell E<lt>habusan2@sprynet.comE<gt> for his assistance on the
+Win32 platform
  
 Copyright (c) 1997 Ted Ashton
  
@@ -284,6 +306,6 @@ same terms as Perl itself.
 
 =head1 SEE ALSO
 
-L<Devel::DProf>, L<Time::HiRes>, L<Win32::API>
+L<Devel::DProf>, L<Time::HiRes>.
 
 =cut

@@ -15,6 +15,7 @@ sleep(1);
 
 package A;
 
+$a = 0;
 sub test {
   $a++;
 }
@@ -22,6 +23,7 @@ sub test {
 eval q[
 package B;
 
+$b = 0;
 sub test {
   $b++;
 }
@@ -30,6 +32,7 @@ sub test {
 eval q[
 package C;
 
+$c = 0;
 sub test {
   $c++;
 }
