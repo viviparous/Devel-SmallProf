@@ -1,0 +1,98 @@
+NAME
+    Devel::SmallProf - a small Perl profiler
+
+SYNOPSIS
+            perl5 -d:SmallProf test.pl
+
+DESCRIPTION
+    The Devel::SmallProf is a small profiler which I find useful (or at
+    least interesting :-) when used in conjuction with Devel::DProf. It
+    collects statistics on the run times of the lines in the various files
+    being run. Those statistics are placed in the file smallprof.out in one
+    of two formats. If `$DB::print_lines' is false (the default), it prints:
+
+            <num> <time> <file>:<line>
+
+    where <num> is the number of times that the line was executed, <time> is
+    the amount of time spent executing it and <file> and <line> are the
+    filename and line number, respectively.
+
+    If, on the other hand, `$DB::print_lines' is true, it print:
+
+            <num> <time> <text>
+
+    where <num> and <time> are as above and <text> is the actual text of the
+    executed line (read from the file). If the executed line, however, is in
+    an eval, no line is printed.
+
+    The package uses the debugging hooks in Perl and thus needs the -d
+    switch, so to profile test.pl, use the command:
+
+            perl5 -d:SmallProf test.pl
+
+    Once the script is done, the statistics in smallprof.out can be sorted
+    to show which lines took the most time. The output can be sorted to find
+    which lines take the longest, either with the sort command:
+
+            sort -nrk 2 smallprof.out | less
+
+    or a perl script:
+
+            open(PROF,"smallprof.out");
+            @sorted = sort {(split(/\s+/,$b))[2] <=> 
+                            (split(/\s+/,$a))[2]} <PROF>;
+            close PROF;
+            print join('',@sorted);
+
+NOTES
+    *   Determining the accuracy or signifiance of the results is left as an
+        exercise for the reader. I've tried to keep the timings pretty much
+        just to the profiled code, but no guarantees of any kind are made.
+
+    *   SmallProf depends on `syscall()' and `gettimeofday()' (see the "syscall"
+        entry in the perlfunc manpage) to do its timings. If your system
+        lacks them SmallProf won't work.
+
+    *   There is a variable called `$DB::profile_evals' which sets up some code
+        to try to help the programmer evaluate *which* eval is taking all
+        the time. You can activate this code by putting a
+        `BEGIN{$DB::profile_evals =1}' at the beginning of your script. It
+        is not clear whether this should be considered a feature or a bug.
+        See the section on "BUGS".
+
+BUGS
+    The handling of evals is poor. The results, even with
+    `$DB::profile_evals' on, are ugly. The code to handle
+    `$DB::profile_evals' is even uglier. The eval profiling uses the
+    `@{"main::_<$filename"}' array to find the code which is currently being
+    executed. I expect that things could be improved somewhat by dealing
+    appropriately with packages, but the reference in the perldebug manpage
+    calls it only `@{"_<$filename"}'. As it is, the eval lines reported are
+    blank some of the time. Even when they show up, it can be hard to tell
+    where they originated.
+
+    Also, there has got to be a better way to switch that stuff on and off
+    than "bootstrapping" `&DB::DB'. If there is a slick, computationally
+    cheap way of dealing with evals, I'm intending to set it to always debug
+    evals and try to forget that I ever wrote kludge that is there now, but
+    it's there now because I'm trying to keep the expense of this module as
+    low as possible.
+
+    Comments, advice and insulting remarks about kludges are welcome. If you
+    see inefficent stuff in this module and have a better way, please let me
+    know.
+
+AUTHOR
+    Ted Ashton <ashted@southern.edu>
+
+    SmallProf was developed from code orignally posted to usenet by Philippe
+    Verdret. I've attempted to contact him but have had no success.
+
+    Copyright (c) 1997 Ted Ashton
+
+    This module is free software and can be redistributed and/or modified
+    under the same terms as Perl itself.
+
+SEE ALSO
+    the Devel::DProf manpage, the gettimeofday() manpage
+
