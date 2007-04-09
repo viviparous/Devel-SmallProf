@@ -1,9 +1,8 @@
 package Devel::SmallProf; # To help the CPAN indexer to identify us
-our $VERSION = '2.00_03';
+
+our $VERSION = '2.01';
 
 package DB;
-
-require 5.006;
 
 # do not profile subs
 BEGIN { $^P=0x122 }
@@ -20,12 +19,14 @@ my ($cdone, $done, $cstart, $start, $prevf, $prevl, $nulltime,
 sub sub; # even if it is not used it has to be declared!
 
 sub DB {
-  my($pkg,$filename,$line) = caller;
   $profile || return;
+
+  my($pkg,$filename,$line) = caller;
   %packages && !$packages{$pkg} && return;
+
+  $done = Time::HiRes::time;
   my ($u,$s,$cu,$cs) = times;
   $cdone = $u+$s+$cu+$cs;
-  $done = Time::HiRes::time;
 
   # Now save the _< array for later reference.  If we don't do this here, 
   # evals which do not define subroutines will disappear.
@@ -48,7 +49,7 @@ sub DB {
 }
 
 
-use Time::HiRes; # 'time';
+use Time::HiRes;
 
 BEGIN {
   $drop_zeros = 0;
@@ -183,8 +184,8 @@ $stat,$time,$ctime,$i,$line
 	}
       }
     }
-    close OUT;
   }
+  close OUT;
 }
 
 1;
@@ -381,24 +382,27 @@ Point and click to go to the script hot spots!
 =head1 AUTHOR
 
 Devel::SmallProf was developed by Ted Ashton
-E<lt>ashted@cpan.orgE<gt>. It is currently being maintained by Salvador
-Fandiño E<lt>sfandino@yahoo.comE<gt>.
-
+E<lt>ashted@cpan.orgE<gt>. It is currently being maintained by
+Salvador Fandiño E<lt>sfandino@yahoo.comE<gt>.
 
 SmallProf was developed from code originally posted to usenet by Philippe
 Verdret E<lt>philippe.verdret@sonovision-itep.frE<gt>.  Special thanks to
 Geoffrey Broadwell E<lt>habusan2@sprynet.comE<gt> for his assistance on the
-Win32 platform and to Philippe for his patient assistance in testing and 
+Win32 platform and to Philippe for his patient assistance in testing and
 debugging.
+
+=head1 COPYRIGHT AND LICENSE
 
 Copyright (c) 1997-2000 Ted Ashton
 
-Copyright (c) 2003-2004 Salvador Fandiño
+Copyright (c) 2003-2007 Salvador FandiE<ntilde>o
 
 This module is free software and can be redistributed and/or modified under the
 same terms as Perl itself.
 
 =head1 SEE ALSO
+
+L<Devel::FastProf> is a simplified and much faster version of this module.
 
 L<Devel::DProf>, L<Time::HiRes>.
 

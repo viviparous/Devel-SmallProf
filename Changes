@@ -1,5 +1,14 @@
 Revision history for Perl extension Devel::SmallProf.
 
+2.01  9 Apr, 2007
+        - release as stable version
+        - use modern package layout
+        - some docs improvements
+        - add pods test
+
+2.00_04 10 Sep 2005
+	- reorder some perl sentences to improve accuracy.
+
 2.00_03 28 Oct 2004
 	- require only perl 5.6 (reported by Alex Kapranoff)
 

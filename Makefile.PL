@@ -1,13 +1,10 @@
 use ExtUtils::MakeMaker;
-# See lib/ExtUtils/MakeMaker.pm for details of how to influence
-# the contents of the Makefile that is written.
 
-%prereq = ( 'Time::HiRes' => '1.20' );
+require 5.006;
 
-WriteMakefile(
-    'NAME'	=> 'Devel::SmallProf',
-    'VERSION_FROM' => 'SmallProf.pm', # finds $VERSION
-    'PREREQ_PM' => \%prereq,
-    'clean' => { FILES => 'smallprof.out' },
-    'dist' => { COMPRESS => "gzip", SUFFIX => "gz" }
-);
+WriteMakefile( NAME => 'Devel::SmallProf',
+               VERSION_FROM => 'lib/Devel/SmallProf.pm',
+	       ABSTRACT_FROM => 'lib/Devel/SmallProf.pm',
+               PREREQ_PM => { 'Time::HiRes' => '1.20' },
+               clean => { FILES => 'smallprof.out' } );
+
