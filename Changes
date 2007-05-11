@@ -1,5 +1,9 @@
 Revision history for Perl extension Devel::SmallProf.
 
+2.02 10 May, 2007
+        - bad format for periods of 10 seconds or longer (bug reported
+          by Daniel B. Boorstein)
+
 2.01  9 Apr, 2007
         - release as stable version
         - use modern package layout

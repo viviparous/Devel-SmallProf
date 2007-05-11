@@ -1,6 +1,6 @@
 package Devel::SmallProf; # To help the CPAN indexer to identify us
 
-our $VERSION = '2.01';
+our $VERSION = '2.02';
 
 package DB;
 
@@ -149,7 +149,7 @@ END {
     count wall tm  cpu time line 
 .
     format OUT= 
-@######## @.###### @.###### @####:^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+@######## @##.##### @##.##### @####:^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 $stat,$time,$ctime,$i,$line
 .
 
