@@ -32,7 +32,7 @@ sub DB {
   # evals which do not define subroutines will disappear.
   no strict 'refs';
   $listings{$filename} = \@{"main::_<$filename"}
-    if defined(@{"main::_<$filename"});
+    if ( @{"main::_<$filename"} ); #2015-12-19 fix: remove "defined"
   use strict 'refs';
 
   my($delta);
@@ -383,7 +383,7 @@ Point and click to go to the script hot spots!
 
 Devel::SmallProf was developed by Ted Ashton
 E<lt>ashted@cpan.orgE<gt>. It is currently being maintained by
-Salvador Fandiño E<lt>sfandino@yahoo.comE<gt>.
+Salvador FandiÃ±o E<lt>sfandino@yahoo.comE<gt>.
 
 SmallProf was developed from code originally posted to usenet by Philippe
 Verdret E<lt>philippe.verdret@sonovision-itep.frE<gt>.  Special thanks to
